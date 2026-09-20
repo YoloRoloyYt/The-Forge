@@ -99,6 +99,7 @@ height field is run through a Sobel pass to produce normals, and all three are p
 geometry   → G-buffer   albedo | normal + height + specular | emissive
 lights     → instanced quads, normal-mapped, with ray-marched tile shadows
 composite  → linear-light:  albedo × (ambient × AO + light) + emissive
+              plus volumetric haze: light ADDED on top, not multiplied in
 bloom      → progressive down/up sample, stopped before the mips go blocky
 present    → heat shimmer, ACES tonemap, per-biome grade, vignette,
              chromatic aberration, grain, sharp-bilinear upscale
@@ -115,8 +116,15 @@ Some details that matter more than they sound:
   a tiled floor read as a checkerboard no matter how good the detail is.
 - **The bloom chain stops at ~20px.** A 4×4 mip turns every bright pixel into a screen-wide
   axis-aligned cross when it is tented back up.
+- **A fraction of the light is added rather than multiplied.** That is what light scattering
+  off dust in the air actually looks like, and it is the difference between a lit floor and
+  a lit room. Each biome sets its own thickness.
 - **The UI is a separate Canvas2D layer at the display's real resolution.** The world can be
   chunky and lamplit while the text stays razor sharp.
+- **Quality scales itself.** The pipeline is cheap on a GPU and expensive on a software
+  rasteriser, and a browser game does not get to know which it is running on — so it measures
+  frame time and steps shadows, haze, bloom and grain down or back up. Settings shows what it
+  picked and lets you lock it.
 
 **Characters are cut-out skeletons** (`src/engine/rig.js`), not sprite sheets. Bones carry
 sprites; animations are functions that write bone angles for a phase. That buys blendable
@@ -143,6 +151,22 @@ were fitted against it rather than guessed:
 - The XP curve was solved numerically so the depth gates land at roughly runs
   4 / 11 / 21 / 31 / 40 / 49 / 56, with the level cap a little past that. The cubic term in
   `xpNeeded` is what stops the last five levels falling out of a single deep run.
+
+`node tools/forgecurve.js` does the same job for the forge minigame. It drives the real
+ForgeScene at a fixed timestep with rendering off, through an autoplayer that reacts *late*
+by a set number of milliseconds — which is how people actually miss, and what a
+jitter-on-the-value model gets wrong. The windows were tuned against it until the curve read:
+
+| Timing error | Quality | Grade |
+|---|---|---|
+| ±20ms | ~94 | Flawless |
+| ±50ms | ~87 | Superb |
+| ±90ms | ~66 | Fair |
+| ±160ms | ~54 | Poor |
+| flailing | ~22 | Botched |
+
+Skill is worth about **1.9× damage and 3.8× gold on identical ore**, and Masterwork needs
+near-perfect play *plus* a Forgemaster Dram or the right bloodline.
 
 ---
 
@@ -175,6 +199,7 @@ src/ui/
   hud.js  menus.js  shops.js  forgescene.js  icons.js  touch.js
 tools/
   balance.js          the economy dry run
+  forgecurve.js       quality against milliseconds of timing error
   shot.js             headless screenshot helper
   mineview.html  charview.html  rtest.html     isolated art viewers
 tests.html            52 logic tests — open it, it prints ALL OK

@@ -34,9 +34,8 @@
       F.Render.setOcclusion(lv.occlusion(), lv.w, lv.h, TS);
       const B = lv.B;
       F.Render.grade(Object.assign({ ambient: B.ambient, ambientSky: B.ambientSky }, B.grade));
-      F.Render.grain = 0.030 * F.Game.settings.grain;
-      F.Render.bloomAmt = 0.85 * F.Game.settings.bloom;
-      F.Render.shadowSteps = F.Game.settings.shadows ? 22 : 0;
+      F.Render.bloomAmt = 0.58 * F.Game.settings.bloom;
+      if (F.Quality) F.Quality.apply();
       F.Particles.clear();
       this.snapCamera();
       if (this.opt.onEnter) this.opt.onEnter(this);

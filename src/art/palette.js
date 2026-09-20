@@ -50,7 +50,7 @@
       liquid: null,
       dust: '#6f6550',
       ambient: [0.013, 0.015, 0.014], ambientSky: [0.026, 0.030, 0.026], wallTop: 0.34,
-      grade: { sat: 1.05, lift: [0.004, 0.008, 0.004], gain: [1.02, 1.05, 0.98], exposure: 1.42, vignette: 0.50, heatAmt: 0.0 },
+      grade: { haze: 0.075, sat: 1.05, lift: [0.004, 0.008, 0.004], gain: [1.02, 1.05, 0.98], exposure: 1.42, vignette: 0.50, heatAmt: 0.0 },
       fogCol: '#1a2018',
     },
     copper: {
@@ -65,7 +65,7 @@
       liquid: null,
       dust: '#8a6a49',
       ambient: [0.016, 0.013, 0.010], ambientSky: [0.030, 0.025, 0.019], wallTop: 0.34,
-      grade: { sat: 1.10, lift: [0.010, 0.005, 0.002], gain: [1.06, 1.00, 0.94], exposure: 1.40, vignette: 0.52, heatAmt: 0.0 },
+      grade: { haze: 0.085, sat: 1.10, lift: [0.010, 0.005, 0.002], gain: [1.06, 1.00, 0.94], exposure: 1.40, vignette: 0.52, heatAmt: 0.0 },
       fogCol: '#241a12',
     },
     // ------------------------------------------------------------ depth 3
@@ -81,7 +81,7 @@
       liquid: { col: '#1f5a70', col2: '#123c50', glow: '#2fa8c8', emis: 0.22, name: 'water' },
       dust: '#4e6670',
       ambient: [0.010, 0.016, 0.020], ambientSky: [0.020, 0.031, 0.038], wallTop: 0.32,
-      grade: { sat: 1.02, lift: [0.002, 0.006, 0.012], gain: [0.94, 1.02, 1.10], exposure: 1.38, vignette: 0.55, heatAmt: 0.0 },
+      grade: { haze: 0.125, sat: 1.02, lift: [0.002, 0.006, 0.012], gain: [0.94, 1.02, 1.10], exposure: 1.38, vignette: 0.55, heatAmt: 0.0 },
       fogCol: '#12222a',
     },
     // ------------------------------------------------------------ depth 4
@@ -97,7 +97,7 @@
       liquid: { col: '#f2661c', col2: '#a82706', glow: '#ffb040', emis: 0.95, name: 'lava' },
       dust: '#8a4a28',
       ambient: [0.024, 0.012, 0.008], ambientSky: [0.040, 0.020, 0.012], wallTop: 0.36,
-      grade: { sat: 1.12, lift: [0.016, 0.004, 0.000], gain: [1.10, 0.98, 0.90], exposure: 1.32, vignette: 0.55, heatAmt: 0.010 },
+      grade: { haze: 0.115, sat: 1.12, lift: [0.016, 0.004, 0.000], gain: [1.10, 0.98, 0.90], exposure: 1.32, vignette: 0.55, heatAmt: 0.010 },
       fogCol: '#2a1008',
     },
     // ------------------------------------------------------------ depth 5
@@ -113,7 +113,7 @@
       liquid: null,
       dust: '#6f66a8',
       ambient: [0.015, 0.013, 0.026], ambientSky: [0.028, 0.025, 0.048], wallTop: 0.34,
-      grade: { sat: 1.14, lift: [0.006, 0.004, 0.016], gain: [1.00, 0.98, 1.12], exposure: 1.36, vignette: 0.50, heatAmt: 0.0 },
+      grade: { haze: 0.1, sat: 1.14, lift: [0.006, 0.004, 0.016], gain: [1.00, 0.98, 1.12], exposure: 1.36, vignette: 0.50, heatAmt: 0.0 },
       fogCol: '#1a1630',
     },
     // ------------------------------------------------------------ depth 6
@@ -129,7 +129,7 @@
       liquid: { col: '#3c5a2c', col2: '#20361a', glow: '#8fd44a', emis: 0.42, name: 'ichor' },
       dust: '#7d7666',
       ambient: [0.016, 0.016, 0.013], ambientSky: [0.030, 0.030, 0.025], wallTop: 0.33,
-      grade: { sat: 0.94, lift: [0.008, 0.008, 0.006], gain: [1.04, 1.03, 0.96], exposure: 1.40, vignette: 0.56, heatAmt: 0.0 },
+      grade: { haze: 0.08, sat: 0.94, lift: [0.008, 0.008, 0.006], gain: [1.04, 1.03, 0.96], exposure: 1.40, vignette: 0.56, heatAmt: 0.0 },
       fogCol: '#1e1c18',
     },
     // ------------------------------------------------------------ depth 7
@@ -145,7 +145,7 @@
       liquid: { col: '#3a1a6a', col2: '#1c0c3a', glow: '#b04dff', emis: 0.9, name: 'void' },
       dust: '#6a5aa0',
       ambient: [0.014, 0.011, 0.023], ambientSky: [0.026, 0.021, 0.042], wallTop: 0.30,
-      grade: { sat: 1.16, lift: [0.010, 0.002, 0.018], gain: [1.04, 0.94, 1.14], exposure: 1.34, vignette: 0.62, heatAmt: 0.004 },
+      grade: { haze: 0.11, sat: 1.16, lift: [0.010, 0.002, 0.018], gain: [1.04, 0.94, 1.14], exposure: 1.34, vignette: 0.62, heatAmt: 0.004 },
       fogCol: '#160f26',
     },
     // ------------------------------------------------------------ depth 8
@@ -161,7 +161,7 @@
       liquid: { col: '#f0a52a', col2: '#c85a0a', glow: '#ffe89a', emis: 1.15, name: 'goldfire' },
       dust: '#b08a44',
       ambient: [0.028, 0.020, 0.010], ambientSky: [0.048, 0.035, 0.017], wallTop: 0.38,
-      grade: { sat: 1.10, lift: [0.016, 0.010, 0.000], gain: [1.10, 1.02, 0.86], exposure: 1.30, vignette: 0.50, heatAmt: 0.008 },
+      grade: { haze: 0.12, sat: 1.10, lift: [0.016, 0.010, 0.000], gain: [1.10, 1.02, 0.86], exposure: 1.30, vignette: 0.50, heatAmt: 0.008 },
       fogCol: '#2a1c08',
     },
     // ------------------------------------------------------------------ hub
@@ -178,7 +178,7 @@
       liquid: { col: '#e0611a', col2: '#8a2a08', glow: '#ffa040', emis: 0.62, name: 'lava' },
       dust: '#8a7a66',
       ambient: [0.030, 0.026, 0.023], ambientSky: [0.055, 0.047, 0.042], wallTop: 0.46,
-      grade: { sat: 1.06, lift: [0.010, 0.007, 0.004], gain: [1.06, 1.01, 0.95], exposure: 1.38, vignette: 0.44, heatAmt: 0.003 },
+      grade: { haze: 0.06, sat: 1.06, lift: [0.010, 0.007, 0.004], gain: [1.06, 1.01, 0.95], exposure: 1.38, vignette: 0.44, heatAmt: 0.003 },
       fogCol: '#241c18',
     },
   };

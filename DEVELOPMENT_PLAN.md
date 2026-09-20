@@ -56,7 +56,10 @@ them is rolled fresh every descent.
 - [x] **UI** — HUD, minimap, inventory, jobs, deeds, settings, help, six shop screens,
       title, pause, death, map
 - [x] **Touch** — stick, buttons, automatic aim, appears on first touch
-- [x] **Balance** — economy simulation, numerically solved XP curve, 52 logic tests
+- [x] **Balance** — economy simulation, numerically solved XP curve, forge windows fitted
+      against a millisecond-error autoplayer, 52 logic tests
+- [x] **Volumetric haze** — a fraction of the light added rather than multiplied, per biome
+- [x] **Adaptive quality** — frame time measured, detail stepped to match the machine
 
 ## Not built
 
@@ -70,6 +73,7 @@ them is rolled fresh every descent.
 
 - `tests.html` — 52 logic tests over tables, forge maths, economy and progression
 - `node tools/balance.js` — the economy dry run
+- `node tools/forgecurve.js` — forge quality against timing error (needs Playwright)
 - `tools/mineview.html#<depth>`, `tools/charview.html`, `tools/rtest.html` — isolated art viewers
 - `node tools/shot.js <page> <out.png>` — headless screenshots of any of the above
 
@@ -78,3 +82,5 @@ them is rolled fresh every descent.
 - Whether depth VIII should have a second, harder variant rather than ending at the First
   Forger — the level cap currently arrives a little before the content does.
 - Whether the parry should have a shorter window and a shorter cooldown; it is generous now.
+- The bellows rewards a bang-bang hold rather than anticipation. A player who reads the band's
+  drift should beat one who only reacts to it, and right now they do not by much.

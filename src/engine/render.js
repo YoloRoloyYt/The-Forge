@@ -121,6 +121,7 @@
   uniform float u_aoStrength;
   uniform float u_emisBoost;
   uniform float u_macroAmt;
+  uniform float u_haze;          // light scattered by dust in the air
   uniform vec4 u_cam;            // camx, camy, viewW, viewH
   out vec4 o_col;
   void main(){
@@ -148,6 +149,13 @@
     vec3 albL = pow(max(a.rgb, 0.0), vec3(2.2)) * macroTint;
     vec3 emsL = pow(max(e.rgb, 0.0), vec3(2.2));
     vec3 col = albL * (amb + l) + emsL * u_emisBoost;
+
+    // Volumetric haze: a fraction of the light added on top of the surface
+    // rather than multiplied into it, which is what light scattering off dust
+    // actually looks like. It is the difference between a lit floor and a lit
+    // room. Kept off the brightest pixels so it lifts the dark, not the sun.
+    float lum = dot(l, vec3(0.2126, 0.7152, 0.0722));
+    col += l * u_haze * (1.0 - clamp(lum * 0.55, 0.0, 0.85));
     o_col = vec4(col, 1.0);
   }`;
 
@@ -305,6 +313,7 @@
     flash: 0, flashCol: [1, 1, 1], fade: 1,
     heightScale: 14,
     macroAmt: 1.0,
+    haze: 0.085, hazeScale: 1, bloomScale: 1,
     shadowSteps: 22,
     occTex: null, occSize: [1, 1], tile: 32,
     time: 0,
@@ -445,6 +454,7 @@
       gl.uniform1f(p.u.u_aoStrength, this.aoStrength);
       gl.uniform1f(p.u.u_emisBoost, this.emisBoost);
       gl.uniform1f(p.u.u_macroAmt, this.macroAmt);
+      gl.uniform1f(p.u.u_haze, this.haze * (this.hazeScale === undefined ? 1 : this.hazeScale));
       gl.uniform4f(p.u.u_cam, this.cam.x, this.cam.y, this.cam.vw, this.cam.vh);
       F.GL.bindTex(4, this.macroTex); gl.uniform1i(p.u.u_macro, 4);
       F.GL.bindTex(0, this.gbuf.tex[0]); gl.uniform1i(p.u.u_albedo, 0);
@@ -483,7 +493,7 @@
       p = F.GL.use(this.pPresent);
       gl.uniform2f(p.u.u_srcSize, this.w, this.h);
       gl.uniform1f(p.u.u_time, this.time);
-      gl.uniform1f(p.u.u_bloomAmt, this.bloomAmt);
+      gl.uniform1f(p.u.u_bloomAmt, this.bloomAmt * (this.bloomScale === undefined ? 1 : this.bloomScale));
       gl.uniform1f(p.u.u_heatAmt, this.heatAmt);
       gl.uniform1f(p.u.u_exposure, this.exposure);
       gl.uniform1f(p.u.u_vignette, this.vignette);

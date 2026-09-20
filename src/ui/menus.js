@@ -405,7 +405,7 @@
         slider('Sound', 'volume', 0, 1, v => Math.round(v * 100) + '%', v => F.Audio.setVolume(v));
         slider('Music', 'music', 0, 1, v => Math.round(v * 100) + '%', v => F.Audio.setMusicVolume(v));
         slider('Screen shake', 'shake', 0, 1.5, v => Math.round(v * 100) + '%');
-        slider('Film grain', 'grain', 0, 2, v => Math.round(v * 100) + '%', () => { F.Render.grain = 0.030 * st.grain; });
+        slider('Film grain', 'grain', 0, 2, v => Math.round(v * 100) + '%', () => F.Quality.apply());
         slider('Bloom', 'bloom', 0, 2, v => Math.round(v * 100) + '%', () => { F.Render.bloomAmt = 0.58 * st.bloom; });
 
         const tog = (label, key, apply) => {
@@ -418,8 +418,26 @@
           yy += 52;
         };
         tog('Mute everything', 'muted', v => F.Audio.setMuted(!!v));
-        tog('Cast shadows', 'shadows', v => { F.Render.shadowSteps = v ? 22 : 0; });
+        tog('Cast shadows', 'shadows', () => F.Quality.apply());
         tog('Show hints', 'hints');
+
+        // what the game has decided this machine can afford
+        U.rule(x + 44, yy - 8, w - 88);
+        const names = ['Minimum', 'Low', 'High', 'Ultra'];
+        U.text('Detail', x + 44, yy + 22, { size: 15, col: P.text });
+        U.text(F.Quality.locked ? names[F.Quality.level] : names[F.Quality.level] + '  (automatic)',
+          x + w - 44, yy + 22, { size: 13, weight: '600', align: 'right', col: P.brassHi });
+        U.text(Math.round(1000 / Math.max(1, F.Quality.avg)) + ' fps', x + w - 44, yy + 42,
+          { size: 12, align: 'right', col: P.textDim });
+        if (U.btn(x + 44, yy + 54, 150, 34, F.Quality.locked ? 'AUTOMATIC' : 'LOCK IT', { size: 13 })) {
+          F.Quality.locked = !F.Quality.locked;
+        }
+        if (F.Quality.locked) {
+          if (U.btn(x + 204, yy + 54, 44, 34, '-', { size: 15, disabled: F.Quality.level <= 0 }))
+            { F.Quality.level--; F.Quality.apply(); }
+          if (U.btn(x + 254, yy + 54, 44, 34, '+', { size: 15, disabled: F.Quality.level >= 3 }))
+            { F.Quality.level++; F.Quality.apply(); }
+        }
       }, () => F.Game.pop());
       U.end();
     }

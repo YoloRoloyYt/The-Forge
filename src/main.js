@@ -9,6 +9,38 @@
   let last = 0, acc = 0;
   const FIXED = 1 / 120, MAX_STEPS = 6;
 
+  // ---------------------------------------------------------------- quality
+  // The renderer is cheap on a GPU and expensive on a software rasteriser, and
+  // a browser game does not get to know which it is running on. So measure.
+  const Q = F.Quality = {
+    level: 3,                 // 3 = everything, 0 = get it on screen
+    avg: 16, samples: 0, cooldown: 2.5, locked: false,
+    LEVELS: [
+      { shadows: 0,  haze: 0,    bloom: 0.0,  grain: 0,    ca: 0,      scale: 0.66 },
+      { shadows: 0,  haze: 0.5,  bloom: 0.55, grain: 0.5,  ca: 0.5,    scale: 0.8 },
+      { shadows: 12, haze: 0.85, bloom: 0.85, grain: 1,    ca: 1,      scale: 1 },
+      { shadows: 22, haze: 1,    bloom: 1,    grain: 1,    ca: 1,      scale: 1 },
+    ],
+    apply() {
+      const L = this.LEVELS[this.level];
+      const st = F.Game.settings;
+      F.Render.shadowSteps = st.shadows ? L.shadows : 0;
+      F.Render.hazeScale = L.haze;
+      F.Render.bloomScale = L.bloom;
+      F.Render.grain = 0.030 * st.grain * L.grain;
+      F.Render.ca = 0.0045 * L.ca;
+    },
+    sample(dt) {
+      if (this.locked) return;
+      const ms = dt * 1000;
+      this.avg += (ms - this.avg) * 0.05;
+      this.cooldown -= dt;
+      if (this.cooldown > 0) return;
+      if (this.avg > 26 && this.level > 0) { this.level--; this.cooldown = 3; this.apply(); }
+      else if (this.avg < 13 && this.level < 3) { this.level++; this.cooldown = 6; this.apply(); }
+    },
+  };
+
   function frame(ts) {
     let dt = (ts - last) / 1000;
     if (!last || dt > 0.25) dt = 1 / 60;
@@ -20,6 +52,7 @@
       dt *= 0.08;
     }
 
+    F.Quality.sample(Math.min(dt, 0.1));
     F.Game.update(dt);
     const top = F.Game.top();
     if (top && top.update) top.update(dt);
@@ -82,6 +115,7 @@
     // settings
     const st = F.Save.settings();
     Object.assign(F.Game.settings, st);
+    F.Quality.apply();
     F.Audio.setVolume(F.Game.settings.volume);
     F.Audio.setMusicVolume(F.Game.settings.music);
     F.Audio.setMuted(F.Game.settings.muted);

@@ -94,7 +94,7 @@
       this.stage = 1;
       this.bell = {
         t: 0, dur: 9, heat: 0.12, vel: 0, pumping: false,
-        band: 0.55, bandW: 0.16, drift: 0.5, score: 0, inT: 0,
+        band: 0.55, bandW: 0.148, drift: 0.5, score: 0, inT: 0,
       };
       F.Audio.bellows();
     }
@@ -110,9 +110,9 @@
       b.vel *= Math.exp(-2.6 * dt);
       b.heat = F.U.clamp(b.heat + b.vel * dt * 1.7, 0, 1);
       // the band wanders, so you cannot just park the needle
-      b.drift += dt * 0.55;
-      b.band = 0.52 + Math.sin(b.drift) * 0.22 + Math.sin(b.drift * 2.3) * 0.08;
-      b.bandW = 0.16 - Math.min(0.06, b.t * 0.008);
+      b.drift += dt * 0.66;
+      b.band = 0.52 + Math.sin(b.drift) * 0.23 + Math.sin(b.drift * 2.5) * 0.09;
+      b.bandW = 0.148 - Math.min(0.045, b.t * 0.0055);
       const inBand = Math.abs(b.heat - b.band) < b.bandW / 2;
       if (inBand) { b.score += dt; b.inT += dt; }
       else b.inT = 0;
@@ -122,9 +122,9 @@
         if (Math.random() < 0.25) F.Audio.bellows();
       }
       if (b.t >= b.dur) {
-        this.parts.bellows = F.U.sat(b.score / (b.dur * 0.62));
+        this.parts.bellows = F.U.sat(b.score / (b.dur * 0.70));
         this.stage = 2;
-        this.pourS = { fill: 0, speed: 0.33, stopped: false, target: 0.82 + Math.random() * 0.1, t: 0, wobble: Math.random() * 6 };
+        this.pourS = { fill: 0, speed: 0.38, stopped: false, target: 0.78 + Math.random() * 0.14, t: 0, wobble: Math.random() * 6 };
         F.Audio.pour();
       }
     }
@@ -135,12 +135,12 @@
       p.t += dt;
       if (!p.stopped) {
         // the stream speeds up as the crucible empties
-        p.fill += (p.speed + p.t * 0.06) * dt;
+        p.fill += (p.speed + p.t * 0.085) * dt;
         this.spark(F.UI.W / 2, 300 + Math.random() * 90, 1, '#ffca6a', { dir: 1.57, spread: 0.3, sp0: 40, sp1: 120, grav: 700, size: 0.8 });
         if (press) {
           p.stopped = true;
           const err = Math.abs(p.fill - p.target);
-          this.parts.pour = F.U.sat(1 - err / 0.28);
+          this.parts.pour = F.U.sat(1 - err / 0.225);
           F.Audio.quench();
           this.spark(F.UI.W / 2, 560, 26, '#ffd9a0', { sp0: 60, sp1: 320, grav: 600 });
           this.shake = 3;
@@ -161,6 +161,7 @@
         i: 0, n, hits: [], ring: 1.6, speed: 1.0, active: true,
         wait: 0.5, struck: false, best: 0.46,
       };
+      this.ham.tol = 0.30;
       this.stage = 3;
     }
 
@@ -170,12 +171,12 @@
       if (h.wait > 0) { h.wait -= dt; return; }
       if (h.i >= h.n) return;
       // difficulty ramps: later strikes close faster and want a tighter window
-      const spd = 0.85 + h.i * 0.075;
+      const spd = 0.94 + h.i * 0.09;
       h.ring -= dt * spd;
       if (press && !h.struck) {
         h.struck = true;
         const err = Math.abs(h.ring - h.best);
-        const score = F.U.sat(1 - err / 0.42);
+        const score = F.U.sat(1 - err / (h.tol || 0.30));
         h.hits.push(score);
         const perfect = score > 0.93, good = score > 0.70;
         F.Audio.forgeHit(score);
@@ -204,7 +205,7 @@
 
       let q = (this.parts.bellows * WEIGHTS.bellows + this.parts.pour * WEIGHTS.pour + this.parts.hammer * WEIGHTS.hammer) * 100;
       // a floor so a real attempt is never worthless, and the bonuses on top
-      q = 18 + q * 0.82;
+      q = 14 + q * 0.86;
       q += F.Game.raceMod('quality');
       q += F.Game.s.forgeBonus || 0;
       F.Game.s.forgeBonus = 0;
@@ -737,7 +738,7 @@
       if (h.wait <= 0 && h.i < h.n) {
         const rr = Math.max(2, R * h.ring);
         const err = Math.abs(h.ring - target);
-        const close = F.U.sat(1 - err / 0.42);
+        const close = F.U.sat(1 - err / (h.tol || 0.30));
         g.shadowColor = close > 0.9 ? '#fff0c0' : '#ffb347';
         g.shadowBlur = 10 + close * 30;
         g.strokeStyle = close > 0.9 ? '#fff0c0' : close > 0.65 ? '#ffca6a' : '#b08050';
