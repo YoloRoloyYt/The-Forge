@@ -14,12 +14,12 @@
     rogue:  { scale: 0.62, skin: '#8a7a92', tunic: '#3a2f46', head: 'en_hood',  weapon: 'dagger' },
     bomber: { scale: 0.70, skin: '#9a9a4a', tunic: '#5a5a28', body: 'en_beetle' },
     archer: { scale: 0.66, skin: '#6a7a8a', tunic: '#38424e', head: 'en_hood',  weapon: 'bow'   },
-    tank:   { scale: 0.92, skin: '#7a7a7a', tunic: '#4a4a4a', body: 'en_shell', weapon: 'club'  },
-    mage:   { scale: 0.68, skin: '#7a5a9a', tunic: '#3a2050', head: 'en_hood',  weapon: 'staff' },
-    healer: { scale: 0.66, skin: '#5a8a7a', tunic: '#274a3e', head: 'en_hood',  weapon: 'staff' },
+    tank:   { scale: 0.92, skin: '#7a7a7a', tunic: '#4a4a4a', body: 'en_shell', head: 'en_crest', weapon: 'club' },
+    mage:   { scale: 0.68, skin: '#7a5a9a', tunic: '#3a2050', head: 'en_hood',  weapon: 'staff', aura: '#b76cff' },
+    healer: { scale: 0.66, skin: '#5a8a7a', tunic: '#274a3e', head: 'en_hood',  weapon: 'staff', aura: '#6ee787' },
     brute:  { scale: 0.92, skin: '#9a6a52', tunic: '#5a3020', head: 'en_horns', weapon: 'club'  },
-    warden: { scale: 1.05, skin: '#6a7a9a', tunic: '#2e3852', body: 'en_shell', head: 'en_horns', weapon: 'maul' },
-    wraith: { scale: 0.80, skin: '#9a6ac0', tunic: '#2a1440', head: 'en_hood',  weapon: 'dagger', ghost: true },
+    warden: { scale: 1.05, skin: '#6a7a9a', tunic: '#2e3852', body: 'en_shell', head: 'en_crest', weapon: 'maul' },
+    wraith: { scale: 0.80, skin: '#9a6ac0', tunic: '#2a1440', head: 'en_hood',  weapon: 'dagger', ghost: true, aura: '#a44dff' },
   };
 
   class Enemy {
@@ -363,6 +363,17 @@
       const alpha = dead ? Math.max(0, 1 - this.deadT * 1.4) : (L.ghost ? 0.82 : 1);
       if (alpha <= 0.02) return;
       F.Batch.push(F.Art.get('shadow'), this.x, this.y + 1, { sx: sc2 * 0.9, sy: sc2 * 0.75, height: 0, alpha });
+      // Casters and healers wear a ring of their own colour. It is the only way
+      // to pick the thing that is about to heal the pack out of a melee.
+      if (L.aura && this.alive) {
+        const pulse = 0.55 + 0.45 * Math.sin(F.Game.time * 3 + this.seed);
+        F.Batch.push(F.Art.get('blob'), this.x, this.y + 2, {
+          sx: sc2 * 2.2, sy: sc2 * 1.1, tint: F.Col.tint(L.aura),
+          alpha: 0.30 + pulse * 0.22, emis: 1.6, height: 0,
+        });
+        F.Render.light({ x: this.x, y: this.y - 12, r: 84, col: F.Col.lin(L.aura, 1),
+          intensity: 0.9 + pulse * 0.5, z: 12, shadow: 0, spec: 0.4 });
+      }
       const tel = this.telegraph > 0;
       const opt = {
         tints, height: 1, alpha,

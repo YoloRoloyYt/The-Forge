@@ -56,7 +56,7 @@ them is rolled fresh every descent.
 - [x] **UI** — HUD, minimap, inventory, jobs, deeds, settings, help, six shop screens,
       title, pause, death, map
 - [x] **Touch** — stick, buttons, automatic aim, appears on first touch
-- [x] **Balance** — economy simulation, numerically solved XP curve, 51 logic tests
+- [x] **Balance** — economy simulation, numerically solved XP curve, 52 logic tests
 
 ## Not built
 
@@ -68,7 +68,7 @@ them is rolled fresh every descent.
 
 ## Verification
 
-- `tests.html` — 51 logic tests over tables, forge maths, economy and progression
+- `tests.html` — 52 logic tests over tables, forge maths, economy and progression
 - `node tools/balance.js` — the economy dry run
 - `tools/mineview.html#<depth>`, `tools/charview.html`, `tools/rtest.html` — isolated art viewers
 - `node tools/shot.js <page> <out.png>` — headless screenshots of any of the above

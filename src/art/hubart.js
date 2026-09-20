@@ -9,39 +9,97 @@
 
   F.HubArt = {
     build() {
-      // The Great Forge: a stone drum, banded with iron, with a molten throat.
+      // The Great Forge: a stone drum with a molten heart. Built as a real
+      // cylinder — a top ellipse plus a side wall whose normals fan outward —
+      // because a flat disc with a hole in it reads as a flying saucer.
       A().define('forgedrum', 200, 180, (P, r) => {
-        const cx = 100, cy = 104;
-        // scorched apron
-        P.mat(0.30, 0.06).ellipse(cx, cy + 34, 92, 36, '#2a1c16');
-        P.mat(0.32, 0.07).ellipse(cx, cy + 34, 76, 29, '#3a251b');
-        // the drum
-        P.mat(0.86, 0.14).ellipse(cx, cy, 74, 52, '#4a4149');
-        P.mat(0.92, 0.16).ellipse(cx, cy - 8, 70, 46, '#585060');
-        P.speckle(cx - 68, cy - 48, 136, 92, ['#635a6c', '#413a4a'], 260, 0.10);
-        // iron bands
-        P.mat(0.96, 0.42);
-        for (let i = 0; i < 3; i++) {
-          P.a.save(); P.a.globalAlpha = 0.9;
-          P.ellipse(cx, cy - 6 + i * 16, 70 - i * 3, 44 - i * 3, '#3a3640');
-          P.a.restore();
+        const cx = 100, rimY = 58, baseY = 126, rx = 74, ry = 26;
+
+        // scorched apron of brick
+        P.mat(0.26, 0.05).ellipse(cx, baseY + 12, 94, 32, '#241710');
+        P.mat(0.30, 0.06).ellipse(cx, baseY + 10, 80, 26, '#33211a');
+        P.mat(0.34, 0.08).speckle(cx - 78, baseY - 8, 156, 36, ['#432a20', '#2a1a14'], 150, 0.06);
+
+        // ---- the side wall, shaded like a cylinder
+        for (let x = cx - rx; x <= cx + rx; x++) {
+          const t = (x - cx) / rx;                    // -1 .. 1 across the barrel
+          const drop = Math.sqrt(Math.max(0, 1 - t * t));
+          const yTop = rimY + ry * (1 - drop) * 0.0 + ry * 0 + 0;
+          const yBot = baseY + 14 * drop;
+          // outward-fanning normal is what makes it round under a moving light
+          P.nrm(t * 0.92, 0.22);
+          // a key from the upper left, so the barrel has a lit face and a dark one
+          const shade = 0.42 + (1 - Math.abs(t + 0.34)) * 0.80;
+          P.mat(0.74 - Math.abs(t) * 0.18, 0.14);
+          // cool stone against warm brick: the separation is what makes it solid
+          P.a.fillStyle = F.Col.shade('#5d5670', F.U.clamp(shade, 0.30, 1.22));
+          P.a.fillRect(x, yTop, 1, yBot - yTop);
+          P.hh.fillStyle = P.hs(); P.hh.fillRect(x, yTop, 1, yBot - yTop);
+          P.n.fillStyle = P._n; P.n.fillRect(x, yTop, 1, yBot - yTop);
         }
-        P.mat(0.99, 0.55);
-        for (let i = 0; i < 10; i++) {
-          const a = i / 10 * 6.2832;
-          P.dome(cx + Math.cos(a) * 66, cy - 6 + Math.sin(a) * 42, 3, 3, '#6e6a78', 0.6, 1.0);
+        P.nrm(null);
+        P.mat(0.70, 0.10).speckle(cx - rx + 3, rimY + 4, rx * 2 - 6, baseY - rimY, ['#7d7389', '#4a4354'], 340, 0.08);
+        // the barrel sits on the ground; without a contact shadow it floats
+        P.a.save();
+        const cg = P.a.createLinearGradient(0, baseY - 22, 0, baseY + 16);
+        cg.addColorStop(0, 'rgba(0,0,0,0)'); cg.addColorStop(1, 'rgba(0,0,0,0.62)');
+        P.a.fillStyle = cg; P.a.fillRect(cx - rx, baseY - 22, rx * 2, 38);
+        P.a.restore();
+
+        // ---- iron bands wrapping the barrel
+        for (const by of [rimY + 24, baseY - 10]) {
+          for (let x = cx - rx; x <= cx + rx; x++) {
+            const t = (x - cx) / rx;
+            const drop = Math.sqrt(Math.max(0, 1 - t * t));
+            const y = by + 12 * (1 - drop);
+            P.nrm(t * 0.9, 0.2);
+            P.mat(0.86, 0.34);
+            const lit = F.U.clamp(0.5 + (1 - Math.abs(t + 0.34)) * 0.9, 0.35, 1.25);
+            P.a.fillStyle = F.Col.shade('#3f3a48', lit); P.a.fillRect(x, y, 1, 9);
+            P.a.fillStyle = F.Col.shade('#847c94', lit); P.a.fillRect(x, y, 1, 2.4);
+            P.a.fillStyle = 'rgba(0,0,0,0.45)'; P.a.fillRect(x, y + 7.5, 1, 1.5);
+            P.hh.fillStyle = P.hs(); P.hh.fillRect(x, y, 1, 9);
+            P.n.fillStyle = P._n; P.n.fillRect(x, y, 1, 9);
+          }
         }
-        // the molten throat: small, deep-set, and mostly shadow
-        P.mat(0.44, 0.10).ellipse(cx, cy - 12, 34, 22, '#1a0c08');
-        P.mat(0.40, 0.18).glow('#7a1e04').ellipse(cx, cy - 12, 28, 18, '#8a3410');
-        P.glow('#b03c08').mat(0.38, 0.2).ellipse(cx, cy - 12, 19, 12, '#c2501a');
-        P.glow('#d87a20').mat(0.36, 0.2).ellipse(cx, cy - 13, 10, 6, '#e08a30');
+        P.nrm(null);
+        // rivets along the top band
+        P.mat(0.96, 0.5);
+        for (let i = 0; i < 11; i++) {
+          const t = -1 + (i / 10) * 2;
+          const drop = Math.sqrt(Math.max(0, 1 - t * t));
+          P.dome(cx + t * rx, rimY + 28 + 12 * (1 - drop), 2.8, 2.8, '#9a92aa', 0.6, 1.0);
+        }
+
+        // ---- the top face: a raised stone rim around a recessed throat
+        P.nrm(0, -0.55);
+        P.mat(0.99, 0.16).ellipse(cx, rimY, rx, ry, '#7a7188');
+        P.mat(0.99, 0.14).speckle(cx - rx + 6, rimY - ry + 4, rx * 2 - 12, ry * 2 - 8, ['#8b8299', '#5a5366'], 170, 0.05);
+        P.nrm(null);
+        // the throat, cut down into it
+        P.mat(0.70, 0.10).ellipse(cx, rimY + 1, rx - 13, ry - 8, '#2a2330');
+        P.nrm(0, 0.5).mat(0.60, 0.08).ellipse(cx, rimY + 3, rx - 17, ry - 11, '#1a1018');
+        P.nrm(null);
+        P.mat(0.52, 0.16).glow('#8a2c06').ellipse(cx, rimY + 4, rx - 24, ry - 14, '#93380f');
+        P.glow('#c2501a').mat(0.50, 0.16).ellipse(cx, rimY + 4, rx - 34, ry - 17, '#b84a16');
+        P.glow('#e08a30').mat(0.48, 0.16).ellipse(cx, rimY + 5, rx - 46, ry - 19, '#d4792a');
         P.glow(null);
-        // an anvil on the apron
-        P.mat(0.95, 0.5).rect(cx - 16, cy + 34, 32, 8, '#3f3b46');
-        P.mat(0.99, 0.6).poly([[cx - 22, cy + 34], [cx + 22, cy + 34], [cx + 14, cy + 28], [cx - 14, cy + 28]], '#4e4a58');
-        P.mat(0.9, 0.4).rect(cx - 8, cy + 42, 16, 7, '#33303a');
-      }, { ax: 100, ay: 128, bump: 1.1 });
+        // coals in the throat
+        P.mat(0.50, 0.2);
+        for (let i = 0; i < 16; i++) {
+          const a = r() * 6.2832, rr = r() * (rx - 30);
+          P.glow(F.shadeGlow('#ff7a20', 0.35 + r() * 0.5));
+          P.ellipse(cx + Math.cos(a) * rr, rimY + 4 + Math.sin(a) * rr * 0.30, 2 + r() * 3, 1.2 + r() * 1.6, '#c2501a');
+        }
+        P.glow(null);
+
+        // ---- an anvil on the apron, in front
+        P.mat(0.95, 0.5).rect(cx - 16, baseY + 14, 32, 7, '#3f3b46');
+        P.mat(0.99, 0.6).poly([[cx - 23, baseY + 14], [cx + 23, baseY + 14], [cx + 14, baseY + 7], [cx - 14, baseY + 7]], '#4e4a58');
+        P.mat(1.0, 0.7).rect(cx - 22, baseY + 7, 44, 2, '#6e6a78');
+        P.mat(0.9, 0.4).rect(cx - 8, baseY + 21, 16, 8, '#33303a');
+        P.mat(0.86, 0.3).ellipse(cx, baseY + 29, 13, 4, '#2a2730');
+      }, { ax: 100, ay: 128, bump: 1.05, outline: '#140e16' });
 
       A().define('brazier', 30, 46, (P, r) => {
         P.mat(0.62, 0.20).poly([[6, 46], [24, 46], [20, 30], [10, 30]], '#3f3b46');

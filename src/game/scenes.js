@@ -8,7 +8,9 @@
   class TitleScene {
     constructor() {
       this.t = 0;
-      this.lv = F.genMine(1);
+      // the menu sits over Emberhold's Great Forge — the fire the game is named
+      // for, and the only place in the world that is genuinely beautiful at rest
+      this.lv = F.genHub();
       this.cam = { x: 0, y: 0, vw: F.VW, vh: F.VH };
       this.camA = Math.random() * 6.28;
       this.hasSave = F.Save.has();
@@ -20,24 +22,40 @@
       F.Render.setOcclusion(this.lv.occlusion(), this.lv.w, this.lv.h, F.TS);
       const B = this.lv.B;
       F.Render.grade(Object.assign({ ambient: B.ambient, ambientSky: B.ambientSky }, B.grade));
-      F.Render.vignette = 0.62;
-      this.cx = this.lv.spawn.x + 160; this.cy = this.lv.spawn.y + 120;
+      F.Render.vignette = 0.82;
+      const drum = this.lv.props.find(p => p.kind === 'forgedrum');
+      this.fx = drum ? drum.x : this.lv.spawn.x;
+      this.fy = drum ? drum.y : this.lv.spawn.y;
+      this.cx = this.fx - 118; this.cy = this.fy - 46;
     }
     exit() { F.Render.clearOcclusion(); F.Render.vignette = 0.5; }
     update(dt) {
       this.t += dt;
-      // the camera drifts slowly through an empty mine behind the menu
-      this.cx += Math.cos(this.t * 0.11 + this.camA) * 9 * dt * 4;
-      this.cy += Math.sin(this.t * 0.09 + this.camA) * 7 * dt * 4;
+      // a slow orbit of the forge, so the light moves across the stone
+      // a tight orbit, offset so the forge sits in the right half of the frame
+      // and the wordmark and menu get the left half to themselves
+      const a = this.t * 0.075 + this.camA;
+      this.cx = this.fx - 118 + Math.cos(a) * 34;
+      this.cy = this.fy - 46 + Math.sin(a * 1.3) * 20;
       this.cam.vw = F.VW; this.cam.vh = F.VH;
       this.cam.x = F.U.clamp(this.cx - F.VW / 2, 0, this.lv.w * F.TS - F.VW);
       this.cam.y = F.U.clamp(this.cy - F.VH / 2, 0, this.lv.h * F.TS - F.VH);
       F.Particles.update(dt, this.lv);
-      if (Math.random() < 0.5) {
+      // embers off the forge, and dust in the hall
+      if (Math.random() < 0.85) {
+        const ea = Math.random() * 6.2832, er = Math.random() * 54;
+        F.Particles.spawn({
+          x: this.fx + Math.cos(ea) * er, y: this.fy - 30 + Math.sin(ea) * er * 0.5,
+          vx: F.U.rnd(-9, 9), vy: F.U.rnd(-34, -12), life: F.U.rnd(1.6, 3.4),
+          sprite: 'spark', col: '#ffbe5a', col1: '#6a1a00', size: 2.6, size1: 0,
+          emis: 2.8, drag: 0.5, light: 0,
+        });
+      }
+      if (Math.random() < 0.4) {
         F.Particles.spawn({
           x: this.cam.x + Math.random() * this.cam.vw, y: this.cam.y + Math.random() * this.cam.vh,
           vx: F.U.rnd(-4, 4), vy: F.U.rnd(-6, 1), life: F.U.rnd(2, 5),
-          sprite: 'dust', col: this.lv.B.dust, size: 2.4, size1: 1, alpha: 0.24, emis: 0, drag: 0.3,
+          sprite: 'dust', col: this.lv.B.dust, size: 2.4, size1: 1, alpha: 0.22, emis: 0, drag: 0.3,
         });
       }
       if (this.going) {
@@ -62,6 +80,7 @@
       F.drawTerrain(this.lv, this.cam, sorted, t);
       F.drawProps(this.lv, this.cam, sorted, t);
       F.drawNodes(this.lv, this.cam, sorted, t);
+      if (this.lv.npcs && this.lv.npcs.length) F.drawNpcs(this.lv, this.cam, sorted, t);
       F.drawSorted(sorted);
       F.Particles.draw(this.cam, t);
       for (const L of this.lv.lights) {
@@ -69,63 +88,74 @@
         const fl = L.flicker ? 1 + Math.sin(t * 9 + L.x) * L.flicker * 0.3 : 1;
         F.Render.light({ x: L.x, y: L.y, r: L.r, col: L.col, intensity: L.i * fl, z: L.z, shadow: L.shadow, spec: 1 });
       }
-      F.Render.light({ x: this.cx, y: this.cy - 40, r: 330, col: [1.0, 0.66, 0.34], intensity: 2.6, z: 40, shadow: 1, spec: 1 });
+      F.Render.light({ x: this.fx, y: this.fy - 20, r: 420, col: [1.0, 0.54, 0.22], intensity: 3.4, z: 44, flicker: 0.2, shadow: 0.4, spec: 1 });
       F.Render.endFrame();
       this.drawUI();
     }
     drawUI() {
       const U = F.UI, g = U.g, P = F.PAL;
       U.begin(F.Input.mx, F.Input.my, F.Input.mdown, F.Input.mclick);
-      // a heavy vignette behind the words
-      const grad = g.createLinearGradient(0, 0, 0, U.H);
-      grad.addColorStop(0, 'rgba(6,4,10,0.74)');
-      grad.addColorStop(0.42, 'rgba(6,4,10,0.16)');
-      grad.addColorStop(1, 'rgba(6,4,10,0.88)');
-      g.fillStyle = grad; g.fillRect(0, 0, U.W, U.H);
 
-      const cx = U.W / 2, ty = 172;
+      // a soft scrim over the left half only, so the forge keeps its light
+      const grad = g.createLinearGradient(0, 0, U.W * 0.78, 0);
+      grad.addColorStop(0, 'rgba(6,4,10,0.90)');
+      grad.addColorStop(0.55, 'rgba(6,4,10,0.72)');
+      grad.addColorStop(1, 'rgba(6,4,10,0.0)');
+      g.fillStyle = grad; g.fillRect(0, 0, U.W, U.H);
+      const vg = g.createLinearGradient(0, 0, 0, U.H);
+      vg.addColorStop(0, 'rgba(6,4,10,0.55)');
+      vg.addColorStop(0.35, 'rgba(6,4,10,0.0)');
+      vg.addColorStop(1, 'rgba(6,4,10,0.72)');
+      g.fillStyle = vg; g.fillRect(0, 0, U.W, U.H);
+
+      const x0 = 132;
       const b = 0.5 + 0.5 * Math.sin(this.t * 1.1);
-      // lay the wordmark out by measurement so the numeral never collides
-      const w1 = U.width('THE FORGE', 104, '700', true);
-      const w2 = U.width('II', 84, '700', true);
-      const gap = 30;
-      const x0 = cx - (w1 + gap + w2) / 2;
-      U.text('THE FORGE', x0, ty, {
-        size: 104, weight: '700', display: true,
+      const w1 = U.width('THE FORGE', 96, '700', true);
+      const w2 = U.width('II', 78, '700', true);
+      const gap = 26;
+
+      U.text('THE FORGE', x0, 214, {
+        size: 96, weight: '700', display: true,
         col: '#f6dda0', glow: 'rgba(255,150,50,' + (0.42 + b * 0.22) + ')', glowBlur: 46, shadowD: 4, shadowA: 0.9,
       });
-      U.text('II', x0 + w1 + gap, ty - 2, {
-        size: 84, weight: '700', display: true,
+      U.text('II', x0 + w1 + gap, 212, {
+        size: 78, weight: '700', display: true,
         col: '#ff9a3c', glow: 'rgba(255,110,30,' + (0.55 + b * 0.25) + ')', glowBlur: 36, shadowD: 3,
       });
-      // a hairline bracket around the numeral
       g.strokeStyle = 'rgba(255,154,60,0.45)'; g.lineWidth = 1.4;
       g.beginPath();
-      g.moveTo(x0 + w1 + gap - 12, ty - 62); g.lineTo(x0 + w1 + gap - 12, ty + 10);
-      g.moveTo(x0 + w1 + gap + w2 + 12, ty - 62); g.lineTo(x0 + w1 + gap + w2 + 12, ty + 10);
+      g.moveTo(x0 + w1 + gap - 11, 154); g.lineTo(x0 + w1 + gap - 11, 220);
+      g.moveTo(x0 + w1 + gap + w2 + 11, 154); g.lineTo(x0 + w1 + gap + w2 + 11, 220);
       g.stroke();
-      U.rule(cx - 320, ty + 30, 640, 'rgba(199,154,78,0.75)');
-      U.text('"As a child, I yearned for the mines."', cx, ty + 72, {
-        size: 24, weight: '500', display: true, align: 'center', col: '#c9bcae', alpha: 0.95,
+
+      const wTot = w1 + gap + w2;
+      const rg = g.createLinearGradient(x0, 0, x0 + wTot, 0);
+      rg.addColorStop(0, 'rgba(199,154,78,0.85)');
+      rg.addColorStop(1, 'rgba(199,154,78,0)');
+      g.fillStyle = rg; g.fillRect(x0, 240, wTot, 1.5);
+
+      U.text('"As a child, I yearned for the mines."', x0, 286, {
+        size: 25, weight: '500', display: true, col: '#d3c6b6', alpha: 0.96,
       });
 
-      const bw = 300, bh = 54, bx = cx - bw / 2;
-      let by = 400;
+      const bw = 300, bh = 54;
+      let by = 372;
       if (this.hasSave) {
-        if (U.btn(bx, by, bw, bh, 'CONTINUE', { primary: true, display: true, size: 20 })) this.start(true);
-        by += bh + 14;
+        if (U.btn(x0, by, bw, bh, 'CONTINUE', { primary: true, display: true, size: 20 })) this.start(true);
+        by += bh + 13;
       }
-      if (U.btn(bx, by, bw, bh, this.hasSave ? 'NEW RUN' : 'BEGIN', { primary: !this.hasSave, display: true, size: 20 })) {
+      if (U.btn(x0, by, bw, bh, this.hasSave ? 'NEW RUN' : 'BEGIN', { primary: !this.hasSave, display: true, size: 20 })) {
         if (this.hasSave) F.Game.push(new F.ConfirmScene('Start a new run?', 'Your current progress will be lost for good.', () => { F.Save.wipe(); this.start(false); }));
         else this.start(false);
       }
-      by += bh + 14;
-      if (U.btn(bx, by, bw, bh, 'SETTINGS', { display: true, size: 20 })) F.Game.push(new F.SettingsScene());
-      by += bh + 14;
-      if (U.btn(bx, by, bw, bh, 'HOW TO PLAY', { display: true, size: 20 })) F.Game.push(new F.HelpScene());
+      by += bh + 13;
+      if (U.btn(x0, by, bw, bh, 'SETTINGS', { display: true, size: 20 })) F.Game.push(new F.SettingsScene());
+      by += bh + 13;
+      if (U.btn(x0, by, bw, bh, 'HOW TO PLAY', { display: true, size: 20 })) F.Game.push(new F.HelpScene());
 
-      U.text('Mine. Forge. Descend. Repeat until the rock gives up something worth keeping.',
-        cx, U.H - 46, { size: 15, align: 'center', col: P.textFaint });
+      U.text('Mine. Forge. Descend.', x0, U.H - 76, { size: 17, weight: '600', display: true, col: P.brass, alpha: 0.9 });
+      U.text('Repeat until the rock gives up something worth keeping.', x0, U.H - 50,
+        { size: 14, col: P.textFaint });
       U.end();
     }
   }

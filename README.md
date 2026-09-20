@@ -177,13 +177,13 @@ tools/
   balance.js          the economy dry run
   shot.js             headless screenshot helper
   mineview.html  charview.html  rtest.html     isolated art viewers
-tests.html            51 logic tests — open it, it prints ALL OK
+tests.html            52 logic tests — open it, it prints ALL OK
 forge1/               The Forge 1, untouched, for reference
 ```
 
 ## Tests
 
-Open `tests.html`. It runs 51 tests over the content tables, the ore-combination maths, the
+Open `tests.html`. It runs 52 tests over the content tables, the ore-combination maths, the
 quality curve, trait thresholds, item generation, the economy and the progression curve, and
 prints **ALL OK** or the failures. No canvas, no WebGL — just the maths the game hangs off.
 

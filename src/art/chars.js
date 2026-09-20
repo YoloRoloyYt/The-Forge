@@ -338,13 +338,31 @@
       P.mat(0.86, 0.14).poly([[12, 0], [20, 8], [16, 9], [12, 4], [8, 9], [4, 8]], G.hi);
     }, { ax: 12, ay: 19, bump: 1.3 });
 
-    A().define('en_horns', 26, 14, (P) => {
-      P.mat(0.9, 0.35);
-      P.poly([[6, 14], [1, 4], [5, 1], [9, 11]], G.mid);
-      P.poly([[20, 14], [25, 4], [21, 1], [17, 11]], G.mid);
-      P.mat(1.0, 0.55).poly([[1, 4], [5, 1], [5, 5]], G.hi);
-      P.mat(1.0, 0.55).poly([[25, 4], [21, 1], [21, 5]], G.hi);
-    }, { ax: 13, ay: 13, bump: 1.4 });
+    // Horns are anchored like a helmet: the head sprite rises 19 units above
+    // its own bone, so anything meant to sit ON the skull has to clear that.
+    A().define('en_horns', 34, 40, (P) => {
+      const base = 34;
+      P.mat(0.84, 0.28);
+      P.poly([[11, base], [3, base - 18], [8, base - 24], [15, base - 8]], G.mid);
+      P.poly([[23, base], [31, base - 18], [26, base - 24], [19, base - 8]], G.mid);
+      P.mat(1.0, 0.50);
+      P.poly([[3, base - 18], [8, base - 24], [7, base - 16]], G.hi);
+      P.poly([[31, base - 18], [26, base - 24], [27, base - 16]], G.hi);
+      // a brow band tying them to the head
+      P.mat(0.92, 0.34).rounded(7, base - 6, 20, 5, 2, G.low);
+      P.mat(0.98, 0.5).rect(8, base - 6, 18, 1.6, G.hi);
+    }, { ax: 17, ay: 36, bump: 1.4 });
+
+    // a ridged helm for the heavies
+    A().define('en_crest', 30, 34, (P) => {
+      const base = 30;
+      P.mat(0.90, 0.32).dome(15, base - 10, 11, 9, G.mid, 0.5, 1.0);
+      P.mat(0.98, 0.50).rect(4, base - 6, 22, 3, G.hi);
+      P.mat(1.0, 0.6);
+      for (let i = 0; i < 6; i++) P.dome(15, base - 18 - i * 2.6, 2.2 - i * 0.2, 2.2, G.hi, 0.7, 1.0);
+      P.mat(0.86, 0.30).poly([[5, base - 6], [8, base + 3], [12, base - 4]], G.low);
+      P.mat(0.86, 0.30).poly([[25, base - 6], [22, base + 3], [18, base - 4]], G.low);
+    }, { ax: 15, ay: 30, bump: 1.4 });
 
     A().define('en_bow', 12, 34, (P) => {
       P.mat(0.82, 0.2);
