@@ -101,6 +101,109 @@
         P.glow(null);
       }, { ax: 48, ay: 104, bump: 1.1 });
 
+      // ---- trade fittings. Each room is supposed to look like somebody works there.
+      A().define('trough', 44, 26, (P, r) => {
+        P.mat(0.72, 0.14).rounded(0, 4, 44, 20, 3, '#3f2e1e');
+        P.mat(0.80, 0.16).rounded(1.5, 5.5, 41, 5, 2, '#5a4229');
+        P.mat(0.30, 0.55).glow('#0e2430').rounded(3, 9, 38, 13, 2, '#17394a');
+        P.glow('#2a6a86').mat(0.28, 0.6);
+        for (let i = 0; i < 7; i++) P.ellipse(6 + r() * 32, 12 + r() * 8, 1.5 + r() * 3, 0.9 + r(), '#3f8fae');
+        P.glow(null);
+        P.mat(0.85, 0.35).rect(0, 4, 2.5, 20, '#4a4650').rect(41.5, 4, 2.5, 20, '#4a4650');
+      }, { ax: 22, ay: 24, bump: 1.2, outline: '#120c08' });
+
+      A().define('rack', 40, 34, (P, r) => {
+        P.mat(0.86, 0.14).rect(0, 0, 40, 4, '#4a3524');
+        P.mat(0.80, 0.12).rect(1, 28, 38, 4, '#4a3524');
+        // hanging tools
+        for (let i = 0; i < 4; i++) {
+          const x = 6 + i * 9;
+          P.mat(0.72, 0.16).rect(x, 4, 2.4, 18, '#3f2e1e');
+          P.mat(0.94, 0.45);
+          if (i % 2) P.rounded(x - 3, 20, 8.5, 6, 1.5, '#6e6a78');
+          else { P.poly([[x - 4, 20], [x + 6, 20], [x + 1.2, 27]], '#6e6a78'); }
+        }
+      }, { ax: 20, ay: 32, bump: 1.25, outline: '#120c08' });
+
+      A().define('cauldron', 40, 36, (P, r) => {
+        P.mat(0.62, 0.20).dome(20, 22, 16, 12, '#2f2b34', 0.25, 0.9);
+        P.mat(0.86, 0.34).rounded(3, 10, 34, 6, 3, '#413c48');
+        P.mat(0.34, 0.30).glow('#1e5a34').ellipse(20, 12, 14, 4.6, '#2f8f52');
+        P.glow('#4fd88a').mat(0.32, 0.3);
+        for (let i = 0; i < 6; i++) P.circle(9 + r() * 22, 10 + r() * 4, 0.9 + r() * 1.6, '#6ee7a0');
+        P.glow(null);
+        P.mat(0.80, 0.28).rect(6, 28, 4, 8, '#33303a').rect(30, 28, 4, 8, '#33303a');
+      }, { ax: 20, ay: 34, bump: 1.25, outline: '#0e1410' });
+
+      A().define('shelf', 44, 34, (P, r) => {
+        P.mat(0.84, 0.12).rect(0, 0, 44, 3.5, '#4a3524');
+        P.mat(0.84, 0.12).rect(0, 16, 44, 3.5, '#4a3524');
+        P.mat(0.70, 0.10).rect(0, 30, 44, 3.5, '#3f2e1e');
+        const cols = ['#e0344f', '#4aa6ff', '#6ee787', '#f0cb4b', '#b76cff', '#ff8a3d'];
+        for (let row = 0; row < 2; row++) for (let i = 0; i < 6; i++) {
+          const x = 3 + i * 7, y = row * 16;
+          const c = cols[(i + row * 3) % cols.length];
+          P.mat(0.68, 0.30).glow(F.shadeGlow(c, 0.30));
+          P.rounded(x, y + 6, 4.4, 9, 1.6, c);
+          P.glow(null);
+          P.mat(0.74, 0.2).rect(x + 1.2, y + 4, 2, 2.4, '#5a4229');
+        }
+      }, { ax: 22, ay: 32, bump: 1.2, outline: '#120c08' });
+
+      A().define('pedestal', 32, 46, (P) => {
+        P.mat(0.62, 0.16).rounded(4, 30, 24, 14, 2, '#413c48');
+        P.mat(0.74, 0.18).rounded(8, 14, 16, 18, 2, '#4e4856');
+        P.mat(0.88, 0.30).rounded(5, 10, 22, 6, 2, '#5c5668');
+        // the rune, floating just above it
+        P.mat(0.95, 0.5).glow('#6a2ab0');
+        P.poly([[16, 0], [24, 6], [21, 15], [11, 15], [8, 6]], '#8f3bff');
+        P.glow('#c98bff').mat(1.0, 0.6).rect(15, 4, 2, 8, '#d8b0ff');
+        P.glow(null);
+      }, { ax: 16, ay: 44, bump: 1.3, outline: '#0c0812' });
+
+      A().define('noticeboard', 56, 46, (P, r) => {
+        P.mat(0.70, 0.12).rect(6, 38, 5, 8, '#3f2e1e').rect(45, 38, 5, 8, '#3f2e1e');
+        P.mat(0.82, 0.14).rounded(0, 0, 56, 40, 2, '#4a3524');
+        P.mat(0.74, 0.10).rect(3, 3, 50, 34, '#2e2118');
+        for (let i = 0; i < 7; i++) {
+          const x = 5 + r() * 40, y = 5 + r() * 26;
+          P.mat(0.80, 0.16).rect(x, y, 8 + r() * 6, 7 + r() * 5, r() < 0.5 ? '#cfc4a6' : '#b8ac8e');
+          P.mat(0.9, 0.4).circle(x + 3, y + 1.5, 1, '#c79a4e');
+        }
+      }, { ax: 28, ay: 44, bump: 1.25, outline: '#120c08' });
+
+      A().define('shrinestone', 54, 62, (P, r) => {
+        P.mat(0.55, 0.12).ellipse(27, 57, 22, 6, '#2c2836');
+        P.mat(0.86, 0.14);
+        P.poly([[27, 2], [46, 20], [43, 56], [11, 56], [8, 20]], '#4e4856');
+        P.speckle(10, 6, 34, 48, ['#5c5668', '#3a3544'], 130, 0.10);
+        // carved ancestor face
+        P.mat(0.60, 0.08).ellipse(19, 24, 4, 5.5, '#2a2634');
+        P.mat(0.60, 0.08).ellipse(35, 24, 4, 5.5, '#2a2634');
+        P.glow('#2a7f9e').mat(0.7, 0.4).ellipse(19, 24, 2.2, 3, '#7ef9ff');
+        P.glow('#2a7f9e').mat(0.7, 0.4).ellipse(35, 24, 2.2, 3, '#7ef9ff');
+        P.glow(null);
+        P.mat(0.5, 0.06).rect(18, 38, 18, 2.5, '#2a2634');
+        P.mat(0.92, 0.26);
+        for (let i = 0; i < 4; i++) P.rect(12 + i * 9, 46, 6, 2, '#6a6478');
+      }, { ax: 27, ay: 58, bump: 1.3, outline: '#0a0810' });
+
+      A().define('barrel', 26, 30, (P) => {
+        P.mat(0.80, 0.12).rounded(1, 3, 24, 26, 5, '#4e3a24');
+        P.mat(0.86, 0.16).ellipse(13, 5, 11, 3.6, '#63492c');
+        P.mat(0.92, 0.30).rect(1, 9, 24, 2.6, '#4a4650').rect(1, 20, 24, 2.6, '#4a4650');
+        P.mat(0.70, 0.10).rect(12, 3, 1.6, 26, '#3a2a19');
+      }, { ax: 13, ay: 28, bump: 1.2, outline: '#120c08' });
+
+      A().define('plaque', 62, 26, (P) => {
+        P.mat(0.88, 0.18).rounded(0, 0, 62, 22, 3, '#3a3544');
+        P.mat(0.94, 0.40).rounded(2, 2, 58, 18, 2, '#4e4856');
+        P.mat(0.99, 0.55).rect(4, 4, 54, 1.8, '#7a7288');
+        P.mat(0.6, 0.3).glow('#ffffff').rect(8, 9, 46, 5, '#ffffff');
+        P.glow(null);
+        P.mat(0.95, 0.5).circle(5, 11, 1.8, '#8a8298').circle(57, 11, 1.8, '#8a8298');
+      }, { ax: 31, ay: 24, bump: 1.25 });
+
       A().define('anvil', 34, 24, (P) => {
         P.mat(0.95, 0.5).poly([[2, 8], [32, 8], [26, 2], [8, 2]], '#4e4a58');
         P.mat(0.99, 0.6).rect(2, 7, 30, 2, '#6e6a78');

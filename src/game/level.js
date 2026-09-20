@@ -125,6 +125,21 @@
       }
     }
     const tintOf = lv._tintCache, topTintOf = lv._topTintCache;
+    // per-zone shade caches, so a workshop's floor can carry its trade's colour
+    const zone = lv.zone;
+    if (zone && !lv._zoneCache) {
+      lv._zoneCache = lv.zoneCol.map((col, zi) => {
+        const cache = new Uint32Array(256);
+        const p = F.Col.parse(col);
+        for (let i = 0; i < 256; i++) {
+          const g = i / 200;
+          cache[i] = zi === 0 ? tintOf[i]
+            : F.Col.tint(F.Col.hex(g * (p[0] * 0.80 + 60), g * (p[1] * 0.80 + 60), g * (p[2] * 0.80 + 60)));
+        }
+        return cache;
+      });
+    }
+    const zoneCache = lv._zoneCache;
 
     // ---- pass 1: ground
     for (let y = y0; y <= y1; y++) {
@@ -144,8 +159,10 @@
           Bt.push(A.get(id + '_wall' + (v % 6)), px + ox, py + oy,
             { ax: 0, ay: 0, sx: fx ? -1 : 1, sy: fy ? -1 : 1, height: 1, tint: topTintOf[sh] });
         } else {
+          const z = zone ? zone[ti] : 0;
           Bt.push(A.get(id + '_floor' + v), px + ox, py + oy,
-            { ax: 0, ay: 0, sx: fx ? -1 : 1, sy: fy ? -1 : 1, height: 0.42, tint: tintOf[sh] });
+            { ax: 0, ay: 0, sx: fx ? -1 : 1, sy: fy ? -1 : 1, height: 0.42,
+              tint: z ? zoneCache[z][sh] : tintOf[sh] });
         }
       }
     }

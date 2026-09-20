@@ -482,13 +482,22 @@
       const A = F.Art, Bt = F.Batch;
       for (const s of this.slashes) {
         const k = s.t / s.max;
-        const scale = s.range / 30 * (1.0 + (1 - k) * 0.18);
-        Bt.push(A.get('slash'), s.x, s.y, {
-          rot: s.a, scale, alpha: k * 0.95,
-          tint: F.Col.tint(s.col), emis: 3.2 + (s.heavy ? 1.6 : 0), height: 0,
+        // pick the trail whose sweep matches the weapon instead of stretching one
+        const key = s.arc < 1.8 ? 'slash_n' : s.arc < 2.8 ? 'slash_m' : 'slash_w';
+        const f = A.get(key);
+        const scale = (s.range * 1.24) / 78 * (0.9 + (1 - k) * 0.22);
+        // a wide soft bloom under a sharp core reads as a moving edge, not a smear
+        Bt.push(f, s.x, s.y, {
+          rot: s.a, scale: scale * 1.14, alpha: k * 0.30,
+          tint: F.Col.tint(s.col), emis: 1.5 + (s.heavy ? 0.7 : 0), height: 0,
         });
-        F.Render.light({ x: s.x + Math.cos(s.a) * s.range * 0.6, y: s.y + Math.sin(s.a) * s.range * 0.6,
-          r: s.range * 1.8, col: F.Col.lin(s.col, 1), intensity: 2.2 * k, z: 14, shadow: 0, spec: 0.5 });
+        Bt.push(f, s.x, s.y, {
+          rot: s.a, scale, alpha: k * 0.85,
+          tint: F.Col.tint(F.Col.mix(s.col, '#ffffff', 0.55)),
+          emis: 2.2 + (s.heavy ? 1.0 : 0), height: 0,
+        });
+        F.Render.light({ x: s.x + Math.cos(s.a) * s.range * 0.55, y: s.y + Math.sin(s.a) * s.range * 0.55,
+          r: s.range * 1.7, col: F.Col.lin(s.col, 1), intensity: 1.7 * k, z: 14, shadow: 0, spec: 0.5 });
       }
       for (const b of this.beams) {
         const k = b.t / b.max;

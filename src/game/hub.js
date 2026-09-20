@@ -8,18 +8,28 @@
   const T = F.T, TS = F.TS;
 
   // room: [id, cx, cy, halfW, halfH, doorSide, title, npc]
+  // Each workshop gets its own floor colour and its own fittings. A hub where
+  // every room is the same grey flagstone is a hub nobody remembers.
   const ROOMS = [
-    { id: 'smith',   cx: 13, cy: 12, w: 7, h: 5, door: 'S',  title: 'DRILL WORKS',    npc: 'smith'  },
-    { id: 'ench',    cx: 39, cy: 12, w: 7, h: 5, door: 'S',  title: 'RUNE HALL',      npc: 'ench'   },
-    { id: 'alch',    cx: 10, cy: 26, w: 6, h: 5, door: 'E',  title: 'APOTHECARY',     npc: 'alch'   },
-    { id: 'shrine',  cx: 13, cy: 39, w: 7, h: 5, door: 'N',  title: 'ANCESTOR SHRINE', npc: 'shrine' },
-    { id: 'market',  cx: 42, cy: 26, w: 6, h: 5, door: 'W',  title: 'STOREHOUSE',     npc: 'merchant' },
-    { id: 'board',   cx: 39, cy: 39, w: 7, h: 5, door: 'N',  title: 'NOTICE BOARD',   npc: 'board'  },
+    { id: 'smith',  cx: 13, cy: 12, w: 7, h: 5, door: 'S', title: 'DRILL WORKS',     npc: 'smith',
+      col: '#6a4a2c', light: [1.0, 0.62, 0.28], fit: ['barrel', 'rack', 'anvil', 'trough', 'crate'] },
+    { id: 'ench',   cx: 39, cy: 12, w: 7, h: 5, door: 'S', title: 'RUNE HALL',       npc: 'ench',
+      col: '#4a3a6e', light: [0.66, 0.40, 1.0], fit: ['crate', 'pedestal', 'bench', 'pedestal', 'shelf'] },
+    { id: 'alch',   cx: 10, cy: 26, w: 6, h: 5, door: 'E', title: 'APOTHECARY',      npc: 'alch',
+      col: '#2f5a44', light: [0.42, 1.0, 0.66], fit: ['barrel', 'cauldron', 'shelf', 'bench'] },
+    { id: 'shrine', cx: 13, cy: 39, w: 7, h: 5, door: 'N', title: 'ANCESTOR SHRINE', npc: 'shrine',
+      col: '#2e4e5e', light: [0.44, 0.86, 1.0], fit: ['bench', 'shrinestone', 'bench'] },
+    { id: 'market', cx: 42, cy: 26, w: 6, h: 5, door: 'W', title: 'STOREHOUSE',      npc: 'merchant',
+      col: '#6a5a2e', light: [1.0, 0.86, 0.42], fit: ['barrel', 'crate', 'shelf', 'crate', 'barrel'] },
+    { id: 'board',  cx: 39, cy: 39, w: 7, h: 5, door: 'N', title: 'NOTICE BOARD',    npc: 'board',
+      col: '#5e4630', light: [1.0, 0.74, 0.40], fit: ['bench', 'noticeboard', 'noticeboard', 'crate'] },
   ];
 
   F.genHub = function () {
     const W = 52, H = 48;
     const lv = new F.Level(W, H, 'hub', 0);
+    lv.zone = new Uint8Array(W * H);
+    lv.zoneCol = ['#ffffff'];
     lv.name = 'Emberhold';
     lv.sub = 'The fire has never gone out';
     const t = lv.tiles;
@@ -120,20 +130,47 @@
 
     // ---- room interiors and shopkeepers
     lv.npcs = [];
-    for (const R of ROOMS) {
+    ROOMS.forEach((R, ri) => {
+      // paint the room's floor so you know which trade you are standing in
+      lv.zoneCol.push(R.col);
+      for (let y = R.cy - R.h + 1; y < R.cy + R.h; y++)
+        for (let x = R.cx - R.w + 1; x < R.cx + R.w; x++)
+          if (lv.t(x, y) === T.FLOOR) lv.zone[y * W + x] = ri + 1;
+
       const px = R.cx * TS + 16, py = (R.cy - 1) * TS + 16;
       lv.npcs.push(makeNpc(R.npc, px, py, R));
-      lv.props.push({ kind: 'sign', x: R.doorX, y: R.doorY - (R.door === 'S' ? 26 : R.door === 'N' ? -26 : 0), r: 0, solid: false, title: R.title });
-      // workbenches along the back wall
-      for (let i = -R.w + 2; i <= R.w - 2; i += 2) {
-        const bx = (R.cx + i) * TS + 16, by = (R.cy - R.h + 1) * TS + 16;
-        lv.props.push({ kind: 'bench', x: bx, y: by, r: 9, solid: true, v: (Math.random() * 3) | 0 });
+
+      // plaque over the doorway
+      const sx = R.doorX, sy = R.doorY + (R.door === 'S' ? 30 : R.door === 'N' ? -34 : 0);
+      lv.props.push({ kind: 'plaque', x: sx, y: sy, r: 0, solid: false, title: R.title, col: R.col });
+      lv.lights.push({ x: sx, y: sy - 14, r: 120, col: R.light, i: 1.5, z: 20, shadow: 0 });
+
+      // the trade's fittings, spread along the back wall
+      const back = (R.cy - R.h + 1) * TS + 30;
+      const span = (R.w - 1.4) * 2 * TS;
+      R.fit.forEach((kind, i) => {
+        const t = R.fit.length === 1 ? 0.5 : i / (R.fit.length - 1);
+        const fx = R.cx * TS + 16 + (t - 0.5) * span;
+        const fy = back + ((i % 2) ? 6 : 0);
+        lv.props.push({ kind, x: fx, y: fy, r: 10, solid: true, v: (Math.random() * 3) | 0 });
+        if (kind === 'cauldron') lv.lights.push({ x: fx, y: fy - 22, r: 130, col: [0.35, 1.0, 0.6], i: 2.0, z: 16, flicker: 0.2, shadow: 0.3 });
+        if (kind === 'pedestal') lv.lights.push({ x: fx, y: fy - 34, r: 140, col: [0.62, 0.32, 1.0], i: 2.4, z: 22, flicker: 0.14, shadow: 0.3 });
+        if (kind === 'trough') lv.lights.push({ x: fx, y: fy - 8, r: 90, col: [0.30, 0.70, 0.90], i: 1.0, z: 8, shadow: 0 });
+        if (kind === 'shrinestone') lv.lights.push({ x: fx, y: fy - 44, r: 190, col: [0.48, 0.92, 1.0], i: 2.8, z: 26, flicker: 0.1, shadow: 0.4 });
+      });
+
+      // lamps at the front corners, torches on the side walls, and a soft fill
+      // of the trade's own colour over the whole room
+      for (const sgn of [-1, 1]) {
+        const lx = (R.cx + sgn * (R.w - 1)) * TS + 16, ly = (R.cy + R.h - 1) * TS + 16;
+        lv.props.push({ kind: 'lantern_post', x: lx, y: ly, r: 6, solid: false });
+        lv.lights.push({ x: lx, y: ly - 26, r: 270, col: [1.0, 0.80, 0.48], i: 4.0, z: 26, shadow: 1 });
+        const tx = (R.cx + sgn * R.w) * TS + 16 - sgn * 10, ty = R.cy * TS + 20;
+        lv.props.push({ kind: 'torch', x: tx, y: ty, r: 5, solid: false, phase: Math.random() * 7 });
+        lv.lights.push({ x: tx, y: ty - 12, r: 250, col: [1.0, 0.66, 0.34], i: 3.8, z: 28, flicker: 0.45, shadow: 1 });
       }
-      lv.props.push({ kind: 'lantern_post', x: (R.cx - R.w + 1) * TS + 16, y: (R.cy + R.h - 1) * TS + 16, r: 6, solid: false });
-      lv.props.push({ kind: 'lantern_post', x: (R.cx + R.w - 1) * TS + 16, y: (R.cy + R.h - 1) * TS + 16, r: 6, solid: false });
-      lv.lights.push({ x: (R.cx - R.w + 1) * TS + 16, y: (R.cy + R.h - 1) * TS - 10, r: 190, col: [1.0, 0.78, 0.44], i: 2.9, z: 24, shadow: 1 });
-      lv.lights.push({ x: (R.cx + R.w - 1) * TS + 16, y: (R.cy + R.h - 1) * TS - 10, r: 190, col: [1.0, 0.78, 0.44], i: 2.9, z: 24, shadow: 1 });
-    }
+      lv.lights.push({ x: R.cx * TS + 16, y: (R.cy - 1) * TS + 16, r: 340, col: R.light, i: 1.9, z: 70, flicker: 0.06, shadow: 0 });
+    });
 
     // the boss gate, east end of the long gallery
     lv.exits.push({ kind: 'bossgate', x: (W - 7) * TS + 16, y: CY * TS + 16, r: 30, label: 'The Deep Gate' });

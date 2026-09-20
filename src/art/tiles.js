@@ -76,7 +76,71 @@
         g.beginPath(); g.ellipse(32, 6, 32, 5, 0, 0, 7); g.fill();
         P.n.fillStyle = 'rgb(128,128,0)'; P.n.fillRect(0, 0, 64, 12);
       }, { bump: 0 });
-      // crescent slash arc
+      // Crescent weapon trails. Three widths, baked at high resolution. Built as
+      // ONE tapering shape filled through a conic gradient — stacking dozens of
+      // small strokes to fake the taper leaves visible concentric banding.
+      [['slash_n', 0.62], ['slash_m', 1.05], ['slash_w', 1.62]].forEach(([key, half]) => {
+        A.define(key, 168, 168, (P) => {
+          const g = P.a, steps = 84, span = half * 2, turn = span / (Math.PI * 2);
+          const fat = t => Math.pow(Math.sin(t * Math.PI), 0.62);
+          const rOut = t => 78 - (1 - fat(t)) * 7;
+          const rIn = t => rOut(t) - (5 + fat(t) * 25);
+          g.save();
+          g.translate(84, 84);
+
+          const crescent = () => {
+            g.beginPath();
+            for (let i = 0; i <= steps; i++) {
+              const t = i / steps, a = -half + t * span, r = rOut(t);
+              const x = Math.cos(a) * r, y = Math.sin(a) * r;
+              i ? g.lineTo(x, y) : g.moveTo(x, y);
+            }
+            for (let i = steps; i >= 0; i--) {
+              const t = i / steps, a = -half + t * span, r = rIn(t);
+              g.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            g.closePath();
+          };
+
+          const ramp = (a0, a1, a2) => {
+            let grad;
+            if (g.createConicGradient) {
+              grad = g.createConicGradient(-half, 0, 0);
+              grad.addColorStop(0, 'rgba(255,255,255,0)');
+              grad.addColorStop(turn * 0.16, 'rgba(255,255,255,' + a0 + ')');
+              grad.addColorStop(turn * 0.58, 'rgba(255,255,255,' + a1 + ')');
+              grad.addColorStop(turn * 0.93, 'rgba(255,255,255,' + a2 + ')');
+              grad.addColorStop(Math.min(0.999, turn), 'rgba(255,255,255,0)');
+              grad.addColorStop(1, 'rgba(255,255,255,0)');
+            } else {
+              grad = 'rgba(255,255,255,' + a1 + ')';
+            }
+            return grad;
+          };
+
+          // body
+          crescent();
+          g.fillStyle = ramp(0.30, 0.62, 0.22);
+          g.fill();
+          // leading edge: a single clean stroke along the outer rim
+          g.beginPath();
+          for (let i = 0; i <= steps; i++) {
+            const t = i / steps, a = -half + t * span, r = rOut(t) - 1;
+            const x = Math.cos(a) * r, y = Math.sin(a) * r;
+            i ? g.lineTo(x, y) : g.moveTo(x, y);
+          }
+          g.lineCap = 'round'; g.lineJoin = 'round';
+          g.lineWidth = 4.5;
+          g.strokeStyle = ramp(0.45, 1.0, 0.30);
+          g.stroke();
+          g.lineWidth = 1.6;
+          g.strokeStyle = ramp(0.30, 0.9, 0.20);
+          g.stroke();
+          g.restore();
+          P.n.fillStyle = 'rgb(128,128,0)'; P.n.fillRect(0, 0, 168, 168);
+        }, { bump: 0 });
+      });
+      // kept for the parry guard, which wants a soft fan rather than a trail
       A.define('slash', 72, 72, (P) => {
         const g = P.a;
         g.save(); g.translate(36, 36);
@@ -216,51 +280,70 @@
   function wallFace(P, r, B, v) {
     const H = FACE_H, LIP = 10;
     const base = B.wall[0];
-    const dark = F.Col.shade(base, 0.52);
-    const lip = F.Col.mix(base, '#ffffff', 0.18);
+    const dark = F.Col.shade(base, 0.48);
+    const lip = F.Col.mix(base, '#ffffff', 0.16);
 
-    // the lip: the top surface rolling over the edge
+    // ---- the lip: the top surface rolling over the edge, catching sky
     P.nrm(0, -0.42).mat(0.99, 0.16).rect(0, 0, TS, LIP, F.Col.mix(base, '#ffffff', 0.10));
     P.mat(0.99, 0.12).speckle(0, 0, TS, LIP - 1, B.wallGrit, 26, 0.04);
+    P.a.save(); P.a.globalAlpha = 0.5; P.a.fillStyle = lip; P.a.fillRect(0, LIP - 2, TS, 2); P.a.restore();
 
-    // the face proper: a plane facing the camera and slightly south
-    P.nrm(0, 0.68).mat(0.80, 0.09);
-    P.ramp(0, LIP, TS, H - LIP, base, 0.84, 0.44, true);
-    // vertical striation: columns of slightly different rock
-    for (let i = 0; i < 9; i++) {
-      const x = Math.floor(r() * TS), w = 1 + Math.floor(r() * 4);
-      P.a.save(); P.a.globalAlpha = 0.20 + r() * 0.22;
-      P.a.fillStyle = r() < 0.5 ? dark : lip;
-      P.a.fillRect(x, LIP, w, H - LIP);
-      P.a.restore();
+    // ---- the face. A single flat normal over the whole plane makes a grey
+    // slab; break it into columns that each face slightly differently and the
+    // lantern rakes across it instead.
+    P.nrm(0, 0.62).mat(0.80, 0.09);
+    P.ramp(0, LIP, TS, H - LIP, base, 0.86, 0.42, true);
+    let x = 0;
+    while (x < TS) {
+      const w = 3 + Math.floor(r() * 6);
+      const tilt = (r() - 0.5) * 0.55;
+      const shade = 0.78 + r() * 0.46;
+      P.nrm(tilt, 0.60 - Math.abs(tilt) * 0.25);
+      P.mat(0.80, 0.09 + r() * 0.10);
+      P.ramp(x, LIP, Math.min(w, TS - x), H - LIP, F.Col.shade(base, shade), 0.86, 0.42, true);
+      x += w;
     }
-    // horizontal strata lines
-    for (let i = 0; i < 4; i++) {
-      const y = LIP + 3 + Math.floor(r() * (H - LIP - 6));
-      P.a.save(); P.a.globalAlpha = 0.24;
-      P.a.fillStyle = B.crack; P.a.fillRect(0, y, TS, 1);
-      P.a.fillStyle = lip; P.a.fillRect(0, y + 1, TS, 1);
-      P.a.restore();
+
+    // ---- horizontal strata: a dark bed with a lit ledge above it
+    const beds = 2 + Math.floor(r() * 3);
+    for (let i = 0; i < beds; i++) {
+      const y = LIP + 3 + Math.floor(r() * (H - LIP - 8));
+      P.nrm(0, 0.88);
+      P.a.save(); P.a.globalAlpha = 0.42; P.a.fillStyle = B.crack;
+      P.a.fillRect(0, y, TS, 1 + Math.floor(r() * 2)); P.a.restore();
+      P.nrm(0, 0.18);
+      P.a.save(); P.a.globalAlpha = 0.40; P.a.fillStyle = lip;
+      P.a.fillRect(0, y - 1.4, TS, 1.4); P.a.restore();
     }
+
+    // ---- broken blocks jutting out, with real height-derived relief
     P.nrm(null);
-    // broken blocks jutting from the face
-    for (let i = 0; i < 3; i++) {
-      const x = r() * TS, y = LIP + 4 + r() * (H - LIP - 10);
-      P.mat(0.72 + r() * 0.2, 0.14).nrm(0, 0.35);
-      P.dome(x, y, 3 + r() * 4, 2 + r() * 3, F.Col.mix(base, dark, r() * 0.6), 0.55, 0.85);
-      P.nrm(null);
+    for (let i = 0; i < 4; i++) {
+      const bx = r() * TS, by = LIP + 3 + r() * (H - LIP - 12);
+      const bw = 3 + r() * 5, bh = 2.5 + r() * 4;
+      P.mat(0.70 + r() * 0.26, 0.16);
+      P.dome(bx, by, bw, bh, F.Col.mix(base, r() < 0.5 ? lip : dark, r() * 0.7), 0.42, 0.98);
     }
-    P.mat(0.6, 0.06).speckle(0, LIP, TS, H - LIP, B.wallGrit, 46, 0.08);
-    // the floor meets the wall in a dark contact line
-    P.a.save(); P.a.globalAlpha = 0.5; P.a.fillStyle = '#000000'; P.a.fillRect(0, H - 3, TS, 3); P.a.restore();
+    P.nrm(0, 0.62);
+    P.mat(0.6, 0.06).speckle(0, LIP, TS, H - LIP, B.wallGrit, 56, 0.10);
+    for (let i = 0; i < 2; i++) { P.mat(0.5, 0.04); P.crack(r() * TS, LIP + r() * (H - LIP), 9 + r() * 9, B.crack, 1.4 + (r() - 0.5), 0.6); }
+    P.nrm(null);
+
+    // ---- the floor meets the wall in a dark contact line
+    P.a.save();
+    const cg = P.a.createLinearGradient(0, H - 7, 0, H);
+    cg.addColorStop(0, 'rgba(0,0,0,0)'); cg.addColorStop(1, 'rgba(0,0,0,0.72)');
+    P.a.fillStyle = cg; P.a.fillRect(0, H - 7, TS, 7);
+    P.a.restore();
+
     if (B.accentAmt && r() < B.accentAmt * 0.7) {
       P.mat(0.85, 0.12).nrm(0, 0.55);
       if (B.accentGlow) P.glow(shadeGlow(B.accentGlow, B.accentEmis * 0.7));
-      const x = r() * TS, y = LIP + r() * (H - LIP - 8);
+      const ax = r() * TS, ay = LIP + r() * (H - LIP - 8);
       P.a.save(); P.a.globalAlpha = 0.40;
-      P.ellipse(x, y, 2 + r() * 3, 3 + r() * 5, B.accent2);
+      P.ellipse(ax, ay, 2 + r() * 3, 3 + r() * 5, B.accent2);
       P.a.globalAlpha = 0.34;
-      P.ellipse(x, y - 1, 1.4 + r() * 1.6, 2 + r() * 3, B.accent);
+      P.ellipse(ax, ay - 1, 1.4 + r() * 1.6, 2 + r() * 3, B.accent);
       P.a.restore(); P.glow(null); P.nrm(null);
     }
   }

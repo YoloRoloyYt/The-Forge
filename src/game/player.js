@@ -251,9 +251,20 @@
       }
       // the swing itself, drawn as an arc of light
       sc.slashes.push({
-        x: this.x, y: this.y, a: this.aim, t: 0.22, max: 0.22,
+        x: this.x, y: this.y, a: this.aim, t: heavy ? 0.28 : 0.20, max: heavy ? 0.28 : 0.20,
         range, arc, heavy, col: w.glowCol || '#ffe9c0',
       });
+      // sparks thrown off the edge, along the sweep
+      const sparkN = heavy ? 14 : 7;
+      for (let i = 0; i < sparkN; i++) {
+        const a2 = this.aim + (i / (sparkN - 1) - 0.5) * arc * 0.9;
+        F.Particles.spawn({
+          x: this.x + Math.cos(a2) * range * 0.85, y: this.y + Math.sin(a2) * range * 0.85,
+          vx: Math.cos(a2) * F.U.rnd(30, 120), vy: Math.sin(a2) * F.U.rnd(30, 120),
+          life: F.U.rnd(0.16, 0.34), sprite: 'spark', col: w.glowCol || '#ffe9c0', col1: '#6a2a08',
+          size: heavy ? 3.4 : 2.4, size1: 0, emis: 2.6, drag: 6, light: 0,
+        });
+      }
       F.Audio.swing(heavy ? 1 : 0.4);
       if (any) F.Game.kick(heavy ? 3.4 : 1.6, heavy ? 0.055 : 0.028);
       else if (heavy) F.Game.kick(1.0);

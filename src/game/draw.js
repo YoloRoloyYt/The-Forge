@@ -31,7 +31,9 @@
           Bt.push(body, x, y, { sx, sy, tint: rockTint, emis: 0, height: 1.0 });
           if (flash > 0) Bt.push(body, x, y, { sx, sy, tint: F.Col.tint('#ffffff', flash * 0.8), emis: 0, height: 1 });
           const glowAmt = (O.glowAmt || 0) * (0.75 + 0.25 * Math.sin(time * 2.2 + n.seed));
-          Bt.push(ore, x, y, { sx, sy, tint: F.Col.tint(O.col), emis: glowAmt * 2.6, height: 1.0 });
+          // common ore is a hint in the rock; rich ore is meant to stop you
+          const show = 0.42 + O.tier * 0.116;
+          Bt.push(ore, x, y, { sx, sy, tint: F.Col.tint(O.col), alpha: show, emis: glowAmt * 2.6, height: 1.0 });
         },
       });
       // rich ore lights the rock around it
@@ -46,7 +48,11 @@
     stalagmite: 'p_stalagmite', rubble: 'p_rubble', bones: 'p_bones',
     mushroom: 'p_mushroom', timber: 'p_timber', crystalcluster: 'p_crystalcluster',
   };
-  const FLAT_SPRITE = { bench: 'bench', crate: 'crate', anvil: 'anvil', sign: 'sign' };
+  const FLAT_SPRITE = {
+    bench: 'bench', crate: 'crate', anvil: 'anvil', sign: 'sign', trough: 'trough',
+    rack: 'rack', cauldron: 'cauldron', shelf: 'shelf', pedestal: 'pedestal',
+    noticeboard: 'noticeboard', shrinestone: 'shrinestone', barrel: 'barrel',
+  };
 
   F.drawProps = function (lv, cam, sorted, time) {
     const A = F.Art, Bt = F.Batch, B = lv.B;
@@ -106,9 +112,16 @@
         } });
         continue;
       }
+      if (p.kind === 'plaque') {
+        sorted.push({ y: p.y, draw() {
+          Bt.push(A.get('plaque'), p.x, p.y, { emis: 0.9, tint: F.Col.tint(F.Col.mix(p.col || '#8a8298', '#ffffff', 0.35)), height: 1 });
+        } });
+        continue;
+      }
       if (FLAT_SPRITE[p.kind]) {
-        sorted.push({ y: p.y, sprite: FLAT_SPRITE[p.kind], x: p.x, opt: { flip: p.flip, height: 1 } });
-        if (p.kind === 'sign' && p.title) sorted.push({ y: p.y + 0.1, draw() {} });
+        const emis = (p.kind === 'pedestal' || p.kind === 'cauldron' || p.kind === 'shrinestone'
+          || p.kind === 'shelf' || p.kind === 'trough') ? 1.2 : 0;
+        sorted.push({ y: p.y, sprite: FLAT_SPRITE[p.kind], x: p.x, opt: { flip: p.flip, emis, height: 1 } });
         continue;
       }
       const base = PROP_SPRITE[p.kind];
@@ -116,7 +129,7 @@
       const key = base + (p.v % 3);
       const tint = (p.kind === 'crystalcluster') ? F.Col.tint(B.accentGlow || B.accent)
         : (p.kind === 'stalagmite' || p.kind === 'rubble') ? F.Col.tint(B.wall[1])
-        : (p.kind === 'bones') ? F.Col.tint(F.Col.mix(B.wall[1], '#cfc4a6', 0.55)) : 0xffffffff;
+        : (p.kind === 'bones') ? F.Col.tint(F.Col.mix(B.wall[1], '#cfc4a6', 0.30)) : 0xffffffff;
       const emis = p.kind === 'crystalcluster' ? 0.55 : p.kind === 'mushroom' ? 1.1 : 0;
       sorted.push({ y: p.y, sprite: key, x: p.x, opt: { flip: p.flip, tint, emis, height: 1 } });
     }
