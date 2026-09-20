@@ -608,14 +608,16 @@
       // sparse lights, clustered once per level and flickering on the spot.
       if (lv.B.liquid && lv.B.liquid.emis > 0.45) {
         const pool = poolLights(lv);
-        const col = F.Col.lin(lv.B.liquid.glow, 1);
+        // the glow colour alone is nearly white for goldfire, and twenty of them
+        // overlapping saturates to paper; bias it back toward the melt's own hue
+        const col = F.Col.lin(F.Col.mix(lv.B.liquid.glow, lv.B.liquid.col, 0.5), 1);
         let used = 0;
         for (const q of pool) {
           if (q.x < cam.x - 160 || q.x > cam.x + cam.vw + 160 ||
               q.y < cam.y - 160 || q.y > cam.y + cam.vh + 160) continue;
           if (++used > 22) break;
           const fl = 1 + Math.sin(t * 3.1 + q.x * 0.09) * 0.20 + Math.sin(t * 5.7 + q.y * 0.05) * 0.12;
-          F.Render.light({ x: q.x, y: q.y, r: q.r * fl, col, intensity: 0.55 * q.w * fl, z: 4, shadow: 0.55, spec: 0.7 });
+          F.Render.light({ x: q.x, y: q.y, r: q.r * fl, col, intensity: 0.85 * q.w * fl, z: 4, shadow: 0.55, spec: 0.7 });
         }
       }
       // the player's lantern, hanging where the sprite says it hangs
@@ -654,7 +656,7 @@
         }
         if (n < 2) continue;
         out.push({ x: (sx / n + 0.5) * TS, y: (sy / n + 0.5) * TS,
-          r: 108 + n * 9, w: edge ? 1 : 0.55 });
+          r: 86 + n * 8, w: edge ? 1 : 0.5 });
       }
     }
     lv._poolLights = out;

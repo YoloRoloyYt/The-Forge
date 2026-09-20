@@ -18,7 +18,7 @@
     build(id, B) {
       const A = F.Art;
       for (let v = 0; v < 8; v++)
-        A.define(id + '_floor' + v, TS, TS, (P, r) => floor(P, r, B, v), { tile: true, bump: 1.15, ax: 0, ay: 0, seed: hash(id, 'f', v) });
+        A.define(id + '_floor' + v, TS, TS, (P, r) => floor(P, r, B, v), { tile: true, bump: 0.85, ax: 0, ay: 0, seed: hash(id, 'f', v) });
       for (let v = 0; v < 6; v++) {
         A.define(id + '_wall' + v, TS, TS, (P, r) => wallTop(P, r, B, v), { tile: true, bump: 0.9, ax: 0, ay: 0, seed: hash(id, 'w', v) });
         A.define(id + '_face' + v, TS, FACE_H, (P, r) => wallFace(P, r, B, v), { bump: 1.0, ax: 0, ay: FACE_H, seed: hash(id, 'e', v) });
@@ -53,6 +53,13 @@
         rad.addColorStop(0, 'rgba(0,0,0,0.62)'); rad.addColorStop(1, 'rgba(0,0,0,0)');
         g.fillStyle = rad; g.fillRect(0, 0, 16, 16);
       }, { ax: 0, ay: 0 });
+      // ground features, scattered in world space and tinted per biome
+      for (let v = 0; v < 3; v++) {
+        A.define('gr_scree' + v, 104, 76, (P, r) => scree(P, r, v), { bump: 1.1, ax: 52, ay: 38, seed: hash('g', 's', v) });
+        A.define('gr_fissure' + v, 136, 98, (P, r) => fissure(P, r, v), { bump: 1.0, ax: 68, ay: 49, seed: hash('g', 'f', v) });
+        A.define('gr_slab' + v, 118, 86, (P, r) => slab(P, r, v), { bump: 0.8, ax: 59, ay: 43, seed: hash('g', 'b', v) });
+        A.define('gr_wash' + v, 148, 112, (P, r) => wash(P, r, v), { bump: 0, ax: 74, ay: 56, seed: hash('g', 'w', v) });
+      }
       // a plain white dot / soft round blob used for particles, glows and bars
       A.define('px', 4, 4, (P) => { P.mat(0.5, 0).rect(0, 0, 4, 4, '#ffffff'); }, { bump: 0 });
       A.define('blob', 32, 32, (P) => {
@@ -234,10 +241,12 @@
       for (let i = 0; i < 2; i++) { P.mat(0.30, 0.03); P.crack(r() * TS, r() * TS, 7 + r() * 8, B.crack, r() * 7, 0.8); }
       P.a.restore();
     }
-    // scattered pebbles catch the light and sell the relief
-    for (let i = 0; i < 6; i++) {
-      const x = 2 + r() * (TS - 4), y = 2 + r() * (TS - 4), rr = 1.2 + r() * 2.4;
-      P.mat(0.5, 0.16).dome(x, y, rr, rr * 0.85, B.grit[(r() * B.grit.length) | 0], 0.40, 0.66);
+    // A few pebbles sell the relief. Any more than this and the whole floor
+    // reads as bubble wrap once the lantern picks out every dome at once.
+    for (let i = 0; i < 4; i++) {
+      const x = 2 + r() * (TS - 4), y = 2 + r() * (TS - 4), rr = 0.9 + r() * r() * 2.6;
+      P.mat(0.46, 0.09).dome(x, y, rr, rr * (0.6 + r() * 0.35),
+        B.grit[(r() * B.grit.length) | 0], 0.38, 0.55);
     }
     // biome accent: moss, verdigris, ash, crystal bloom
     // biome accent: moss, verdigris, ash bloom. Small, broken up, low contrast —
@@ -359,6 +368,107 @@
     }
   }
 
+  // --------------------------------------------------------- ground features
+  // Tiles can only carry detail up to their own size, so a floor built from
+  // tiles alone is fine grain and nothing else — it reads as noise wallpaper.
+  // These are greyscale masters, scattered in world space and tinted per biome,
+  // and they are what gives a cavern floor its large shapes.
+
+  /** A field of loose stone: the spoil that collects in the low spots. */
+  function scree(P, r, v) {
+    const W = 104, H = 76, cx = W / 2, cy = H / 2;
+    // a dim bed under the stones, so the patch has a footprint
+    P.mat(0.30, 0.04);
+    for (let i = 0; i < 14; i++) {
+      P.a.save(); P.a.globalAlpha = 0.14;
+      P.ellipse(cx + (r() - 0.5) * W * 0.7, cy + (r() - 0.5) * H * 0.7,
+        9 + r() * 15, 7 + r() * 11, '#6e6e6e');
+      P.a.restore();
+    }
+    const n = 54 + v * 16;
+    for (let i = 0; i < n; i++) {
+      // pack them toward the middle, so the patch fades out instead of ending
+      const a = r() * 6.2832, k = Math.pow(r(), 0.62);
+      const x = cx + Math.cos(a) * k * W * 0.47, y = cy + Math.sin(a) * k * H * 0.47;
+      const rr = 1.4 + r() * (3.4 - k * 1.4);
+      const g = 120 + (r() * 90) | 0;
+      P.mat(0.5 + r() * 0.34, 0.14 + r() * 0.12);
+      P.a.save(); P.a.globalAlpha = 1 - k * 0.45;
+      P.dome(x, y, rr, rr * (0.72 + r() * 0.2), F.Col.hex(g, g, g), 0.30, 0.95);
+      P.a.restore();
+    }
+  }
+
+  /** A fissure running across the floor, branching as it goes. */
+  function fissure(P, r, v) {
+    const W = 136, H = 98;
+    const walk = (x, y, ang, len, wide, depth) => {
+      let cx = x, cy = y, a = ang;
+      for (let i = 0; i < len; i++) {
+        const t = i / len, w = wide * (1 - t * 0.75);
+        // the dark of the gap, and a bright lip on the side facing the light
+        P.mat(0.06, 0.02);
+        P.a.save(); P.a.globalAlpha = 0.82;
+        P.ellipse(cx, cy, w, w * 0.8, '#2c2c2c', a); P.a.restore();
+        P.mat(0.62, 0.20);
+        P.a.save(); P.a.globalAlpha = 0.34;
+        P.ellipse(cx + Math.sin(a) * w * 0.9, cy - Math.cos(a) * w * 0.9,
+          w * 0.62, w * 0.45, '#cdcdcd', a); P.a.restore();
+        a += (r() - 0.5) * 0.34;
+        cx += Math.cos(a) * 2.6; cy += Math.sin(a) * 2.6;
+        if (cx < -4 || cy < -4 || cx > W + 4 || cy > H + 4) return;
+        if (depth < 2 && i > len * 0.3 && r() < 0.05)
+          walk(cx, cy, a + (r() < 0.5 ? 0.8 : -0.8), len * 0.45, wide * 0.6, depth + 1);
+      }
+    };
+    const a0 = (r() - 0.5) * 0.7;
+    walk(4, H * (0.25 + r() * 0.5), a0, 52 + v * 8, 2.6 + v * 0.5, 0);
+  }
+
+  /** Bedrock showing through the spoil: one big flat slab, cracked. */
+  function slab(P, r, v) {
+    const W = 118, H = 86, cx = W / 2, cy = H / 2;
+    const a0 = r() * 6.2832, a1 = r() * 6.2832;
+    const rad = t => 0.42 + 0.09 * Math.sin(t * 2 + a0) + 0.06 * Math.sin(t * 3 + a1) + v * 0.02;
+    const ring = k => {
+      const p = [];
+      for (let i = 0; i < 48; i++) { const t = i / 48 * 6.2832;
+        p.push([cx + Math.cos(t) * rad(t) * W * k, cy + Math.sin(t) * rad(t) * H * k]); }
+      return p;
+    };
+    // nested rings with rising opacity: a hard elliptical edge is the one thing
+    // that makes a ground decal read as a sticker
+    for (let k = 0; k < 5; k++) {
+      P.mat(0.34 + k * 0.05, 0.07 + k * 0.012);
+      P.a.save(); P.a.globalAlpha = 0.12;
+      P.poly(ring(1.0 - k * 0.055), F.Col.hex(90 + k * 32, 90 + k * 32, 90 + k * 32));
+      P.a.restore();
+    }
+    // joints across the face of the slab
+    P.mat(0.18, 0.04);
+    for (let i = 0; i < 4; i++) {
+      P.a.save(); P.a.globalAlpha = 0.45;
+      P.crack(cx + (r() - 0.5) * W * 0.5, cy + (r() - 0.5) * H * 0.5, 22 + r() * 26, '#3a3a3a', r() * 7, 0.55);
+      P.a.restore();
+    }
+  }
+
+  /** A soft stain: damp, ash, mineral bloom. Colour only, no relief. */
+  function wash(P, r, v) {
+    const W = 148, H = 112, cx = W / 2, cy = H / 2;
+    for (let i = 0; i < 9 + v * 3; i++) {
+      const a = r() * 6.2832, k = Math.pow(r(), 0.7);
+      const g = P.a, x = cx + Math.cos(a) * k * W * 0.34, y = cy + Math.sin(a) * k * H * 0.34;
+      const rr = 16 + r() * 30;
+      const grad = g.createRadialGradient(x, y, 0, x, y, rr);
+      grad.addColorStop(0, 'rgba(255,255,255,0.13)');
+      grad.addColorStop(0.55, 'rgba(255,255,255,0.055)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = grad;
+      g.beginPath(); g.ellipse(x, y, rr, rr * 0.78, r() * 6.2832, 0, 7); g.fill();
+    }
+  }
+
   // ----------------------------------------------------------------- liquids
   function liquid(P, r, B, v) {
     const L = B.liquid;
@@ -431,8 +541,10 @@
     // the hot rind first, so it survives as a lip around the slab
     P.mat(0.22, 0.45).glow(shadeGlow(L.glow, L.emis * 0.55));
     P.poly(ring(1.0), F.Col.mix(L.glow, L.col, 0.55));
-    // then the slab itself, sitting proud of the melt
-    P.mat(0.62, 0.10).glow(null);
+    // Then the slab itself. It has to paint BLACK into the emissive channel, not
+    // simply stop writing to it: glow(null) leaves the rind's emissive underneath
+    // and the whole raft comes out as a flat glowing silhouette.
+    P.mat(0.62, 0.10).glow('#000000');
     P.poly(ring(0.955), basalt);
     // plates within the slab, cracked apart
     const cr = F.rng(771 + v * 31);

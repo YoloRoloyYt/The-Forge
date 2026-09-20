@@ -55,6 +55,7 @@
       vignette: 0.62, sat: 1.02,
     };
     lv.rollVariants(7000 + bossId.length);
+    lv.placeGround(7000 + bossId.length);
     lv.placeRafts(7000 + bossId.length);
     lv.bossId = bossId;
     return lv;

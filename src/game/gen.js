@@ -133,9 +133,8 @@
           const x = c[0] + dx, y = c[1] + dy;
           if (dx * dx + dy * dy <= rr * rr + rr && lv.t(x, y) === T.FLOOR && far(x, y, 13)) {
             t[y * w + x] = T.LIQUID;
-            if (lv.B.liquid.emis > 0.6 && Math.random() < 0.30)
-              lv.lights.push({ x: x * TS + 16, y: y * TS + 16, r: 130 + Math.random() * 60,
-                col: F.Col.lin(lv.B.liquid.glow, 1), i: 1.5 * lv.B.liquid.emis, z: 6, flicker: 0.30, shadow: 0.35 });
+            // the pool's own lighting is clustered per level in poolLights();
+            // a light per tile here as well doubled up and blew the exposure
           }
         }
       }
@@ -254,6 +253,7 @@
     }
 
     lv.rollVariants((Math.random() * 1e9) | 0);
+    lv.placeGround((Math.random() * 1e9) | 0);
     lv.placeRafts((Math.random() * 1e9) | 0);
     return lv;
   }

@@ -47,6 +47,57 @@
       return o;
     }
     /**
+     * Scatter large ground features over the floor. A floor built from tiles
+     * alone only ever has detail at tile scale, which is why a big room reads
+     * as noise; these are the shapes that cross tile boundaries.
+     */
+    placeGround(seed) {
+      const B = this.B;
+      if (!B || B.paved) return;
+      const r = F.rng((seed || 771) ^ 0x2f13);
+      const taken = [];
+      const room = (x, y, w, h) => {
+        for (const q of taken) if (Math.abs(q.x - x) < w && Math.abs(q.y - y) < h) return false;
+        taken.push({ x, y }); return true;
+      };
+      // clear enough floor around the middle of the feature that it is not
+      // half-buried in a wall
+      const open = (tx, ty, rad) => {
+        for (let j = -rad; j <= rad; j++) for (let i = -rad; i <= rad; i++)
+          if (this.t(tx + i, ty + j) !== T.FLOOR) return false;
+        return true;
+      };
+      const kinds = [
+        // damp and mineral staining darkens the floor; a lightening wash reads
+        // as mould spots, which is exactly what it looked like the first time
+        { key: 'gr_wash',    p: 0.026, rad: 2, w: 120, h: 92, sc: [1.1, 2.1], a: [0.32, 0.6],
+          col: () => F.Col.mix(B.floor[2], r() < 0.5 ? B.crack : (B.accent2 || B.crack), 0.35) },
+        { key: 'gr_slab',    p: 0.020, rad: 2, w: 92,  h: 70, sc: [0.75, 1.3], a: [0.7, 1.0],
+          col: () => B.floor[3] },
+        { key: 'gr_scree',   p: 0.034, rad: 1, w: 74,  h: 56, sc: [0.6, 1.15], a: [0.8, 1.0],
+          col: () => B.grit[(r() * B.grit.length) | 0] },
+        { key: 'gr_fissure', p: 0.016, rad: 2, w: 104, h: 80, sc: [0.7, 1.25], a: [0.6, 0.9],
+          col: () => F.Col.mix(B.crack, B.floor[0], 0.25) },
+      ];
+      for (const K of kinds) {
+        for (let y = 2; y < this.h - 2; y++) {
+          for (let x = 2; x < this.w - 2; x++) {
+            if (this.tiles[y * this.w + x] !== T.FLOOR) continue;
+            if (r() > K.p || !open(x, y, K.rad)) continue;
+            const px = (x + 0.5) * TS + (r() - 0.5) * 16, py = (y + 0.5) * TS + (r() - 0.5) * 16;
+            if (!room(px, py, K.w, K.h)) continue;
+            this.decals.push({
+              sprite: K.key + ((r() * 3) | 0), x: px, y: py, rot: r() * 6.2832,
+              scale: K.sc[0] + r() * (K.sc[1] - K.sc[0]),
+              alpha: K.a[0] + r() * (K.a[1] - K.a[0]),
+              tint: F.Col.tint(K.col()),
+            });
+          }
+        }
+      }
+    }
+
+    /**
      * Scatter crust rafts over the pools. They go in as decals, so they are
      * placed in world space and break up the pool at a scale the tile art
      * cannot reach without giving the grid away.
