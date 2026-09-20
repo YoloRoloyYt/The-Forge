@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>shot</title>
+<style>html,body{margin:0;background:#000}canvas{image-rendering:pixelated;width:960px;height:540px}</style></head>
+<body><canvas id="game"></canvas>
+<script>window.__FORGE_TEST__ = true;</script>
+<script src="js/core.js"></script><script src="js/font.js"></script><script src="js/data.js"></script><script src="js/extras.js"></script><script src="js/forgelogic.js"></script><script src="js/ui.js"></script>
+<script src="js/entities.js"></script><script src="js/world.js"></script><script src="js/boss.js"></script><script src="js/forge.js"></script><script src="js/menus.js"></script><script src="js/menus2.js"></script><script src="js/touch.js"></script><script src="js/main.js"></script>
+<script>
+// Developer helper: renders one scene to the canvas for screenshots. Usage: shot.html#hub | cave | cave2 | forge | hammer | result | bag | title
+canvas.style.width = '960px'; canvas.style.height = '540px';
+const mode = location.hash.slice(1) || 'hub';
+S = newState(); S.ores = { stone: 14, copper: 5, iron: 20, aurite: 6, magmite: 6 }; S.gold = 1234; S.potions = { heal: 3, str: 1, prot: 2 }; S.hotbar = ['heal','str','prot',null,null]; S.level = 4; S.gems = { topaz: 2 }; S.essence = 4;
+const mk = (kind, slot, ores, q) => { const it = Forge.create({ kind, slot, ores, quality: q }, S.nextId++); S.items.push(it); return it; };
+S.equip.weapon = mk('weapon', 'weapon', { iron: 12, magmite: 6, aurite: 2 }, 96).id;
+S.equip.chest = mk('armor', 'chest', { iron: 14, copper: 4 }, 82).id;
+S.equip.head = mk('armor', 'head', { iron: 8, aurite: 3 }, 72).id;
+mk('weapon', 'weapon', { copper: 5 }, 45); mk('weapon', 'weapon', { iron: 30, magmite: 12 }, 88); mk('weapon', 'weapon', { stone: 45 }, 60);
+Quests.ensure();
+const w = new WorldScene(); Game.stack = []; Game.push(w);
+let sc = w;
+if (mode.startsWith('cave')) { w.goto(mode === 'cave2' ? 2 : 1); const P = w.P; for (const e of w.lv.enemies) if (Math.hypot(e.x - P.x, e.y - P.y) < 200) e.dead = true;
+  const near = w.lv.nodes.filter(n => Math.hypot(n.x - P.x, n.y - P.y) < 100); if (near[0]) { P.x = near[0].x - 16; P.y = near[0].y; }
+  const en = new Enemy('grunt', P.x + 50, P.y + 10, 1); en.state = 'windup'; en.t = 0.4; en.face = Math.PI; w.lv.enemies.push(en); }
+if (mode === 'forge' || mode === 'hammer' || mode === 'result') { sc = new ForgeScene(); Game.push(sc); if (mode !== 'forge') { sc.sel = { iron: 12, copper: 4, magmite: 5 }; sc.begin(); if (mode !== 'forge') { sc.q.bellows = .8; sc.q.pour = .9; sc.startHammer(); } } if (mode === 'forge') { sc.sel = { iron: 12, magmite: 5, aurite: 3 }; } }
+if (mode === 'bag') { sc = new InventoryScene(); Game.push(sc); }
+if (mode === 'enchant') { sc = new EnchanterScene(); Game.push(sc); }
+if (mode === 'title') { sc = new TitleScene(); Game.stack = [sc]; }
+if (mode === 'boss') { w.goto(BOSS_FLOOR); w.bossIntro = 0; const b = w.lv.enemies[0]; b.hp = b.maxHp * 0.6; b.phase = 3; b.bstate = 'tele'; b.at = { type: 'slam', t: 0.5, dur: 100, rec: 0.8, r: 54 }; w.P.x = b.x - 30; w.P.y = b.y + 60; w.hazards.push({ x: b.x + 70, y: b.y + 50, r: 24, t: 5, tele: 1, life: 99, tick: 0, dmg: 1 }); w.pickups.push({ x: b.x - 60, y: b.y + 70, type: 'berserk', t: 20, bob: 0 }); }
+if (mode === 'hubnpc') { w.goto(0); w.P.x = 9 * 16 + 8; w.P.y = 12 * 16; w.cam.x = U.clamp(w.P.x - VW / 2, 0, w.lv.w * 16 - VW); w.cam.y = U.clamp(w.P.y - VH / 2, 0, w.lv.h * 16 - VH); }
+if (mode === 'race') { sc = new RaceScene(); Game.push(sc); sc.pending = 'dragonkin'; sc.anim = 0; }
+if (mode === 'ach') { S.ach = { first_forge: true, kingslayer: true }; S.stats.forged = 40; sc = new AchievementsScene(); Game.push(sc); }
+if (mode === 'spells') { S.essence = 9; S.equip.weapon && (getItem(S.equip.weapon).spell = 'storm'); sc = new EnchanterScene(); sc.tab = 2; Game.push(sc); }
+if (mode === 'gate') { sc = new BossGateScene(w); Game.push(sc); }
+if (mode === 'touch') { Input.touch = true; }
+if (mode === 'folk') { w.goto(0); const P = w.P; P.x = 25 * 16 + 8; P.y = 21 * 16;
+  w.lv.npcs.length = 0; ['forge','smith','enchanter','alchemist','merchant','board','shrine','gate'].forEach((k,i) => {
+    w.lv.npcs.push({ id: k, kind: k, x: P.x - 150 + i * 42, y: P.y + 36, name: k, col: '#8a5a2a', r: 5 }); });
+  w.cam.x = U.clamp(P.x - VW / 2, 0, w.lv.w * 16 - VW); w.cam.y = U.clamp(P.y - VH / 2, 0, w.lv.h * 16 - VH); }
+if (mode === 'hubmap') { w.goto(0); const lv = w.lv; canvas.width = lv.w * 16; canvas.height = lv.h * 16; ctx.imageSmoothingEnabled = false;
+  canvas.style.width = (lv.w * 16) + 'px'; canvas.style.height = (lv.h * 16) + 'px';
+  window.__hubmap = () => { ctx.drawImage(lv.layer, 0, 0); for (const n of lv.npcs) { const s = Sprites.npc(n); ctx.drawImage(s, Math.round(n.x - s.width / 2), Math.round(n.y - s.height + 8)); } }; }
+if (mode === 'levels') { S.level = 4; S.stats.bestFloor = 2; w.goto(2); sc = new DescendScene(w); Game.push(sc); }
+if (mode === 'minelabel') { w.goto(1); const P = w.P; w.lv.enemies.length = 0; S.lantern = 3; P.stats = calcStats(); w.lv.nodes.length = 0;
+  let fx = null; for (let r = 0; r < 4000 && !fx; r++) { const tx = 20 + Math.floor(Math.random() * 24), ty = 15 + Math.floor(Math.random() * 20), ok = [-3,-2,-1,0,1,2,3,4,5].every(dx => [-2,-1,0,1,2].every(dy => w.lv.t(tx + dx, ty + dy) === T_FLOOR)); if (ok) fx = [tx, ty]; }
+  if (fx) { P.x = fx[0] * TS + 8; P.y = fx[1] * TS + 8; w.cam.x = U.clamp(P.x - VW / 2, 0, w.lv.w * TS - VW); w.cam.y = U.clamp(P.y - VH / 2, 0, w.lv.h * TS - VH); }
+  const a = makeNode('vein', 0, 0, 1); a.ore = 'aurite'; a.x = P.x + 16; a.y = P.y; a.hp = a.max * 0.6; w.lv.nodes.push(a);
+  const b = makeNode('crystal', 0, 0, 1); b.ore = 'cobalt'; b.x = P.x + 60; b.y = P.y + 4; b.labelUntil = 1e9; w.lv.nodes.push(b);
+  w.held = 0; a.labelUntil = 1e9; }
+if (mode === 'ores') { w.goto(1); const P = w.P; w.lv.enemies.length = 0; S.lantern = 3; P.stats = calcStats();
+  w.lv.nodes.length = 0;
+  const types = ['pebble','rock','boulder','vein','crystal','seal'];
+  const ores = ['stone','copper','iron','aurite','cobalt','magmite'];
+  types.forEach((t,i) => { const n = makeNode(t, 0, 0, 1); n.x = P.x - 60 + i*30; n.y = P.y + 2; n.ore = ores[i]; w.lv.nodes.push(n); });
+  ores.forEach((o,i) => { const n = makeNode('vein', 0, 0, 1); n.x = P.x - 60 + i*30; n.y = P.y + 42; n.ore = o; w.lv.nodes.push(n); }); }
+if (mode === 'mobs') { w.goto(1); const P = w.P; w.lv.enemies.length = 0; S.lantern = 3; P.stats = calcStats();
+  ['grunt','rogue','bomber'].forEach((t,i) => { const e = new Enemy(t, P.x + 40 + i*34, P.y - 4, 1, false, 3+i); e.state='idle'; w.lv.enemies.push(e); });
+  const el = new Enemy('grunt', P.x - 44, P.y - 4, 2, true, 8); el.state='idle'; w.lv.enemies.push(el); }
+if (mode === 'merchant') { sc = new MerchantScene(); Game.push(sc); }
+if (mode === 'smith') { sc = new SmithScene(); Game.push(sc); }
+if (mode === 'alch') { sc = new AlchemistScene(); Game.push(sc); }
+if (mode === 'board') { Quests.ensure(); S.quests[0].prog = S.quests[0].need; S.quests[0].done = true; sc = new BoardScene(); Game.push(sc); }
+if (mode === 'quests') { sc = new QuestLogScene(); Game.push(sc); }
+if (mode === 'controls') { sc = new ControlsScene(); Game.push(sc); }
+if (mode === 'pause') { sc = new PauseScene(); Game.push(sc); }
+if (mode === 'settings') { sc = new SettingsScene(); Game.push(sc); }
+if (mode === 'runes') { S.runeFrags = 12; sc = new EnchanterScene(); sc.tab = 1; Game.push(sc); }
+if (mode === 'enh') { sc = new EnchanterScene(); sc.tab = 0; Game.push(sc); }
+let n = 0;
+function loop() {
+  Input.mx = 240; Input.my = 150;
+  for (let i = 0; i < 2; i++) { const top = Game.top(); if (top.update) top.update(1 / 60); }
+  if (mode === 'hammer' && sc.h && sc.h.circles.length < 3) { }
+  if (mode === 'result') { sc.ready = 0; if (sc.stage === 'hammer') { sc.h.circles = []; sc.h.spawned = sc.h.n; sc.h.res = { perfect: 8, good: 0, miss: 0 }; sc.h.end = 1; } if (sc.stage === 'quench') sc.qt = 2; }
+  if (window.__hubmap) { window.__hubmap(); Input.endFrame(); n++; if (n < 80) requestAnimationFrame(loop); return; }
+  for (const s of Game.stack.slice()) { UI.active = false; s.draw(); }
+  if (mode === 'touch' || Input.touch) Touch.draw();
+  Input.endFrame(); n++;
+  if (n < 240) requestAnimationFrame(loop);
+}
+loop();
+</script></body></html>
