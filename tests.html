@@ -19,6 +19,7 @@
 <script src="src/art/palette.js"></script>
 <script src="src/game/data.js"></script>
 <script src="src/game/forge.js"></script>
+<script src="src/art/bossart.js"></script>
 <script>
 (function () {
   const F = window.F2;
@@ -71,6 +72,12 @@
       const n = F.ORE_IDS.filter(id => F.ORES[id].role === 'trait' && d >= F.ORES[id].f[0] && d <= F.ORES[id].f[1]).length;
       if (n < 1) return 'depth ' + d + ' has no trait ore';
     }
+  });
+  t('every boss has art keyed to its own id', () => {
+    const K = F.BossArt && F.BossArt.KINDS;
+    if (!K) return 'BossArt did not load';
+    for (const id of F.BOSS_ORDER) if (!K[id]) return 'no art kind for ' + id;
+    for (const k in K) if (F.BOSS_ORDER.indexOf(k) < 0) return 'art kind ' + k + ' belongs to no boss';
   });
   t('boss order matches the depth gates', () => {
     for (let i = 0; i < F.BOSS_ORDER.length; i++) {

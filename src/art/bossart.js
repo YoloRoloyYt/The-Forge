@@ -11,15 +11,18 @@
 
   const A = () => F.Art;
 
+  // Keyed by boss id, exactly. These used to be short nicknames, which meant
+  // three of the seven bosses quietly rendered as nothing at all — a missing
+  // sprite is skipped silently by the rig. tests.html now checks the mapping.
   // shape: how the mass is built. crown/horns/spines/roots/facets are silhouette.
   const KINDS = {
     grove:    { shape: 'bulk',   crown: 'roots',  eyes: 2, eyeCol: '#c8ff6a', rough: 1.0, mossy: true },
     leviath:  { shape: 'coil',   crown: 'fins',   eyes: 3, eyeCol: '#8ff4ff', rough: 0.6, wet: true },
     infernal: { shape: 'bulk',   crown: 'crown',  eyes: 2, eyeCol: '#ffd36a', rough: 0.9, molten: true },
     prism:    { shape: 'facets', crown: 'facets', eyes: 5, eyeCol: '#e0c8ff', rough: 0.2, facet: true },
-    bone:     { shape: 'gaunt',  crown: 'horns',  eyes: 2, eyeCol: '#b8ff8a', rough: 0.8, bones: true },
-    void:     { shape: 'gaunt',  crown: 'spines', eyes: 4, eyeCol: '#f0a8ff', rough: 0.5, rift: true },
-    forger:   { shape: 'bulk',   crown: 'crown',  eyes: 2, eyeCol: '#fff0a8', rough: 0.7, molten: true, plates: true },
+    sovereign_bone: { shape: 'gaunt',  crown: 'horns',  eyes: 2, eyeCol: '#b8ff8a', rough: 0.8, bones: true },
+    voidlord: { shape: 'gaunt',  crown: 'spines', eyes: 4, eyeCol: '#f0a8ff', rough: 0.5, rift: true },
+    firstforger: { shape: 'bulk',   crown: 'crown',  eyes: 2, eyeCol: '#fff0a8', rough: 0.7, molten: true, plates: true },
   };
 
   F.BossArt = {
@@ -190,12 +193,22 @@
   }
 
   function limb(P, r, K, w, h, rTop, rBot) {
-    const steps = 8;
+    const steps = 14;
     for (let i = 0; i < steps; i++) {
       const t = i / (steps - 1);
-      const rr = rTop + (rBot - rTop) * t;
-      P.mat(0.55 + (1 - Math.abs(t - 0.3) * 1.1) * 0.35, 0.16);
-      P.dome(w / 2, 6 + t * (h - 10), rr, rr * 1.0, t < 0.5 ? G.mid : G.low, 0.26, 0.96);
+      // swell at the shoulder, pinch at the joint, swell again at the elbow —
+      // a straight taper reads as a sausage at this size
+      const swell = 1 + Math.sin(t * Math.PI) * 0.16 - Math.pow(Math.max(0, 1 - Math.abs(t - 0.62) * 6), 2) * 0.22;
+      const rr = (rTop + (rBot - rTop) * t) * swell;
+      P.mat(0.52 + (1 - Math.abs(t - 0.28) * 1.05) * 0.40, 0.16);
+      P.dome(w / 2, 6 + t * (h - 10), rr, rr * 1.02, t < 0.45 ? G.mid : t < 0.75 ? G.low : G.dark, 0.26, 0.97);
+    }
+    // a lit ridge down the outer edge
+    P.mat(0.92, 0.28);
+    for (let i = 0; i < 9; i++) {
+      const t = i / 8;
+      const rr = (rTop + (rBot - rTop) * t) * 0.34;
+      P.dome(w / 2 - (rTop + (rBot - rTop) * t) * 0.52, 8 + t * (h - 14), rr, rr * 1.3, G.hi, 0.6, 1.0);
     }
     if (K.molten) {
       P.glow('#ffffff').mat(0.35, 0.25);
@@ -209,12 +222,19 @@
   }
 
   function fist(P, r, K) {
-    P.mat(0.72, 0.2).dome(18, 18, 15, 14, G.mid, 0.3, 1.0);
-    P.mat(0.9, 0.3);
-    for (let i = 0; i < 4; i++) P.dome(7 + i * 7, 12, 3.6, 3.4, G.hi, 0.6, 1.0);
-    if (K.bones || K.shape === 'gaunt') {
-      P.mat(0.98, 0.5);
-      for (let i = 0; i < 4; i++) P.poly([[6 + i * 7, 26], [8 + i * 7, 34], [10 + i * 7, 26]], G.hi);
+    P.mat(0.66, 0.18).dome(18, 17, 15.5, 14.5, G.low, 0.26, 0.96);
+    // knuckles
+    P.mat(0.94, 0.30);
+    for (let i = 0; i < 4; i++) P.dome(6.5 + i * 7.2, 11, 4.0, 3.8, G.hi, 0.62, 1.0);
+    // curled fingers under them
+    P.mat(0.74, 0.20);
+    for (let i = 0; i < 4; i++) P.dome(6.5 + i * 7.2, 20, 3.4, 4.4, G.mid, 0.4, 0.86);
+    P.mat(0.40, 0.08);
+    for (let i = 0; i < 3; i++) P.rect(9.8 + i * 7.2, 15, 1.2, 10, G.deep);
+    // claws on the things that should have claws
+    if (K.bones || K.shape === 'gaunt' || K.shape === 'facets') {
+      P.mat(0.99, 0.55);
+      for (let i = 0; i < 4; i++) P.poly([[4.6 + i * 7.2, 25], [6.4 + i * 7.2, 33.5], [8.6 + i * 7.2, 25]], G.hi);
     }
     if (K.molten) {
       P.glow('#ffffff').mat(0.4, 0.3);

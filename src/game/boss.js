@@ -80,21 +80,24 @@
       this.move = null; this.moveT = 0;
       this.telegraphs = [];       // { kind, x, y, r, a, len, t, max, col }
       this.adds = [];
-      this.scale = B.r / 36;
+      this.scale = B.r / 38;
       // The boss wears the same skeleton as everyone else, but its body sprite
       // is four times the size of a torso — so the joints have to move out to
       // match, or the head ends up buried inside the chest.
       const R = this.rig;
+      // The body sprite puts its shoulders 82 units above the hips, so the neck
+      // has to clear that or the head renders inside the chest.
       R.byName.hips.y = -60;
-      R.byName.neck.y = -70;
-      R.byName.armBU.x = -34; R.byName.armBU.y = -58;
-      R.byName.armFU.x = 34;  R.byName.armFU.y = -58;
-      R.byName.armBL.y = 34;  R.byName.armFL.y = 34;
-      R.byName.handB.y = 32;  R.byName.handF.y = 32;
-      R.byName.legBU.x = -15; R.byName.legFU.x = 15;
+      R.byName.neck.y = -92;     // head origin lands just above the shoulders
+      R.byName.helm.y = -46;     // the crown sits on the skull, overlapping it
+      R.byName.armBU.x = -36; R.byName.armBU.y = -76;
+      R.byName.armFU.x = 36;  R.byName.armFU.y = -76;
+      R.byName.armBL.y = 38;  R.byName.armFL.y = 38;
+      R.byName.handB.y = 36;  R.byName.handF.y = 36;
+      R.byName.legBU.x = -16; R.byName.legFU.x = 16;
       R.byName.legBL.y = 30;  R.byName.legFL.y = 30;
       R.byName.footB.y = 28;  R.byName.footF.y = 28;
-      this.headroom = 198 * this.scale;   // how far the silhouette rises above its feet
+      this.headroom = 248 * this.scale;   // how far the silhouette rises above its feet
       this.enrage = 1;
       this.noHit = true;
       this.tints = null;
@@ -484,6 +487,10 @@
 
     draw(sc) {
       const rig = this.rig, D = this.def, id = this.id;
+      if (!F.Art.has('bs_body_' + id)) {
+        // loud rather than invisible: a boss with no art is a bug, not a style
+        if (!this._warned) { this._warned = 1; console.error('no boss art for "' + id + '"'); }
+      }
       if (!this.tints) {
         // a value ramp: the mass is darkest, the limbs step up, the crown and
         // the eyes carry the accent. One flat hue over every bone reads as soup.
@@ -508,6 +515,7 @@
       rig.sprite('helm', 'bs_crown_' + id);
       rig.sprite('hair', 'bs_eyes_' + id); rig.sprite('beard', null);
       rig.byName.hair.x = 0; rig.byName.hair.y = 0;
+      rig.byName.hair.ax = undefined; rig.byName.hair.ay = undefined;
       rig.sprite('armBU', 'bs_armU_' + id); rig.sprite('armBL', 'bs_armL_' + id);
       rig.sprite('armFU', 'bs_armU_' + id); rig.sprite('armFL', 'bs_armL_' + id);
       rig.sprite('handB', 'bs_fist_' + id); rig.sprite('handF', 'bs_fist_' + id);
