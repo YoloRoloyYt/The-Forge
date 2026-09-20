@@ -69,6 +69,8 @@
     }
     P.mat(0.62, 0.10).speckle(2, 2, w - 4, h - 6, ['#7e7684', '#4c4653'], Math.floor(w * h * 0.10), 0.22);
     for (let i = 0; i < 3; i++) { P.mat(0.44, 0.04); P.crack(cx + (r() - 0.5) * w * 0.6, cy - h * 0.35 + (r() - 0.5) * h * 0.4, 8 + r() * 7, '#2b2430', r() * 7, 1.0); }
+    // a rim, so a boulder is still a boulder against a floor of the same rock
+    P.outline('#150f18', 0.62);
   }
 
   /** White-on-transparent ore inclusions; tinted per ore at draw time. */
@@ -93,22 +95,51 @@
       for (let i = 0; i < 4; i++) P.crack(cx + (r() - 0.5) * 10, cy - 8 + (r() - 0.5) * 10, 11, '#ffffff', r() * 7, 0.9);
       P.glow(null); return;
     }
-    const n = type === 'pebble' ? 2 : type === 'rock' ? 4 : type === 'vein' ? 9 : type === 'motherlode' ? 16 : 6;
+    // Ore in rock is faceted and it threads: round domes read as golf balls
+    // glued to a boulder, which is exactly what these used to look like.
+    const n = type === 'pebble' ? 3 : type === 'rock' ? 5 : type === 'vein' ? 11 : type === 'motherlode' ? 18 : 7;
+    const pockets = [];
+    for (let i = 0; i < (type === 'motherlode' ? 3 : 2); i++)
+      pockets.push([cx + (r() - 0.5) * w * 0.42, cy - h * 0.34 + (r() - 0.5) * h * 0.30]);
+
+    // the threads first, so the facets sit on top of their own vein
+    P.mat(0.74, 0.26);
+    for (const pk of pockets) {
+      const strands = type === 'vein' || type === 'motherlode' ? 3 : 2;
+      for (let i = 0; i < strands; i++) {
+        P.a.save(); P.a.globalAlpha = 0.5 + r() * 0.35;
+        P.crack(pk[0] + (r() - 0.5) * 6, pk[1] + (r() - 0.5) * 6, 7 + r() * 9, '#ffffff', r() * 7, 0.7);
+        P.a.restore();
+      }
+    }
+
     for (let i = 0; i < n; i++) {
-      const ang = r() * 7, rad = r() * w * 0.28;
-      const x = cx + Math.cos(ang) * rad, y = cy - h * 0.34 + Math.sin(ang) * rad * 0.7;
-      const rr = (type === 'vein' || type === 'motherlode') ? 1.1 + r() * 1.8 : 0.9 + r() * 1.4;
-      P.mat(0.84 + r() * 0.12, 0.34);
-      P.dome(x, y, rr, rr * (0.7 + r() * 0.4), '#ffffff', 0.55, 1.0);
+      const pk = pockets[(r() * pockets.length) | 0];
+      const ang = r() * 6.2832, rad = r() * r() * w * 0.24;
+      const x = pk[0] + Math.cos(ang) * rad, y = pk[1] + Math.sin(ang) * rad * 0.7;
+      const rr = ((type === 'vein' || type === 'motherlode') ? 1.0 : 0.85) * (1 + r() * 1.5);
+      const rot = r() * 6.2832, sides = 4 + ((r() * 2) | 0);
+      const face = (k, lift) => {
+        const pts = [];
+        for (let j = 0; j < sides; j++) {
+          const t = rot + j / sides * 6.2832;
+          const q = rr * k * (0.72 + r() * 0.5);
+          pts.push([x + Math.cos(t) * q + lift, y + Math.sin(t) * q * 0.82 + lift]);
+        }
+        return pts;
+      };
+      P.mat(0.80 + r() * 0.14, 0.30);
+      P.poly(face(1, 0), '#d8d8d8');
+      // one lit facet catching the light, which is what makes it read as crystal
+      P.mat(0.92, 0.55);
+      P.poly(face(0.52, -rr * 0.24), '#ffffff');
       // a dark rim keeps each fleck a fleck instead of a smear
       P.a.save(); P.a.globalAlpha = 0.45; P.a.strokeStyle = '#000000'; P.a.lineWidth = 0.9;
-      P.a.beginPath(); P.a.ellipse(x, y, rr, rr * (0.7 + r() * 0.4), 0, 0, 7); P.a.stroke();
-      P.a.restore();
-    }
-    if (type === 'vein' || type === 'motherlode') {
-      P.mat(0.80, 0.30);
-      for (let i = 0; i < (type === 'motherlode' ? 5 : 3); i++)
-        P.crack(cx + (r() - 0.5) * w * 0.5, cy - h * 0.34 + (r() - 0.5) * h * 0.3, 8 + r() * 8, '#ffffff', r() * 7, 0.7);
+      P.a.beginPath();
+      const rim = face(1.02, 0);
+      P.a.moveTo(rim[0][0], rim[0][1]);
+      for (let j = 1; j < rim.length; j++) P.a.lineTo(rim[j][0], rim[j][1]);
+      P.a.closePath(); P.a.stroke(); P.a.restore();
     }
     P.glow(null);
   }

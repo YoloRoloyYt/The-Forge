@@ -24,7 +24,7 @@
       const shake = n.shake > 0 ? (Math.random() - 0.5) * n.shake * 3 : 0;
       const x = n.x + shake, y = n.y + 4;
       const flash = n.flash > 0 ? n.flash : 0;
-      const rockTint = lv._rockTint || (lv._rockTint = F.Col.tint(F.Col.mix(lv.B.wall[1], '#ffffff', 0.14)));
+      const rockTint = lv._rockTint || (lv._rockTint = F.Col.tint(F.Col.mix(lv.B.wall[1], '#ffffff', 0.32)));
       sorted.push({
         y: n.y, draw() {
           Bt.push(A.get('shadow'), n.x, n.y + 2, { sx: sz * 0.95, sy: sz * 0.7, height: 0 });
@@ -33,7 +33,7 @@
           const glowAmt = (O.glowAmt || 0) * (0.75 + 0.25 * Math.sin(time * 2.2 + n.seed));
           // common ore is a hint in the rock; rich ore is meant to stop you
           const show = 0.42 + O.tier * 0.116;
-          Bt.push(ore, x, y, { sx, sy, tint: F.Col.tint(O.col), alpha: show, emis: glowAmt * 2.6, height: 1.0 });
+          Bt.push(ore, x, y, { sx, sy, tint: F.Col.tint(O.col), alpha: show, emis: glowAmt * 1.9, height: 1.0 });
         },
       });
       // rich ore lights the rock around it

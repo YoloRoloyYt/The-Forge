@@ -119,6 +119,23 @@
           });
         }
       }
+      // A rim: the same silhouette shifted toward the key light, drawn over the
+      // dark outline and then covered by the body. Two pixels of cool light on
+      // the shoulders is what lifts a character off a dark cave floor — without
+      // it every figure reads as a flat sticker however well the body is shaded.
+      const R = F.RIM;
+      if (R && R.amt > 0) {
+        const rt = F.Col.tint(R.col, 1);
+        for (const b of this.order) {
+          if (b.hidden || !b.sprite || !A.has(b.sprite)) continue;
+          const f = A.get(b.sprite);
+          Bt.push(f, b.wx + R.dx, b.wy + R.dy, {
+            rot: b.wa, sx: b.wsx * (b.poseScale || 1), sy: b.wsy * (b.poseScale || 1),
+            ax: b.ax, ay: b.ay, tint: rt, alpha: (opt && opt.alpha !== undefined ? opt.alpha : 1) * R.amt,
+            emis: R.emis, height: 0.02,
+          });
+        }
+      }
       this.draw(opt);
     }
 
