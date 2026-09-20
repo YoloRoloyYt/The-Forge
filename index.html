@@ -1,30 +1,92 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>The Forge</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>The Forge II — As a child, I yearned for the mines</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #07060b; overflow: hidden; }
-  body { display: flex; align-items: center; justify-content: center; }
-  canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #000; touch-action: none; }
+  html, body { margin:0; padding:0; background:#05040a; overflow:hidden; height:100%;
+               font-family:"Segoe UI",Roboto,"Helvetica Neue","DejaVu Sans",sans-serif;
+               -webkit-user-select:none; user-select:none; touch-action:none; }
+  canvas { position:absolute; inset:0; display:block; width:100%; height:100%; }
+  #gl { z-index:1; }
+  #ui { z-index:2; }
+  #boot { position:absolute; inset:0; z-index:9; display:flex; align-items:center; justify-content:center;
+          flex-direction:column; gap:18px; background:#05040a; color:#c9bcae; transition:opacity .5s; }
+  #boot h1 { font:700 42px/1 "Palatino Linotype","Book Antiqua",Georgia,"DejaVu Serif",serif;
+             color:#f6dda0; letter-spacing:.06em; margin:0; text-shadow:0 0 30px rgba(255,150,50,.45); }
+  #boot p { margin:0; font-size:14px; letter-spacing:.14em; text-transform:uppercase; color:#6b6070; }
+  #boot .bar { width:260px; height:3px; background:#1a1622; border-radius:2px; overflow:hidden; }
+  #boot .bar i { display:block; height:100%; width:30%; background:linear-gradient(90deg,#c79a4e,#ffcf7e);
+                 animation:sweep 1.1s ease-in-out infinite; }
+  @keyframes sweep { 0%{transform:translateX(-100%)} 100%{transform:translateX(360%)} }
+  #err { position:absolute; inset:0; z-index:10; display:none; padding:40px; color:#ff8a94;
+         background:#0a0308; font:13px/1.5 monospace; white-space:pre-wrap; overflow:auto; }
 </style>
 </head>
 <body>
-<canvas id="game"></canvas>
-<!-- Classic scripts (no modules) so the game also runs when opened straight from disk. -->
-<script src="js/core.js"></script>
-<script src="js/font.js"></script><script src="js/data.js"></script>
-<script src="js/extras.js"></script>
-<script src="js/forgelogic.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/entities.js"></script>
-<script src="js/world.js"></script>
-<script src="js/boss.js"></script>
-<script src="js/forge.js"></script>
-<script src="js/menus.js"></script>
-<script src="js/menus2.js"></script>
-<script src="js/touch.js"></script>
-<script src="js/main.js"></script>
+<canvas id="gl"></canvas>
+<canvas id="ui"></canvas>
+<div id="boot"><h1>THE FORGE II</h1><p>lighting the furnace</p><div class="bar"><i></i></div></div>
+<pre id="err"></pre>
+
+<script src="src/engine/util.js"></script>
+<script src="src/engine/gl.js"></script>
+<script src="src/engine/art.js"></script>
+<script src="src/engine/batch.js"></script>
+<script src="src/engine/render.js"></script>
+<script src="src/engine/rig.js"></script>
+<script src="src/engine/particles.js"></script>
+<script src="src/engine/input.js"></script>
+<script src="src/engine/audio.js"></script>
+<script src="src/engine/save.js"></script>
+
+<script src="src/art/palette.js"></script>
+<script src="src/art/tiles.js"></script>
+<script src="src/art/props.js"></script>
+<script src="src/art/chars.js"></script>
+<script src="src/art/hubart.js"></script>
+<script src="src/art/bossart.js"></script>
+
+<script src="src/game/data.js"></script>
+<script src="src/game/forge.js"></script>
+<script src="src/game/level.js"></script>
+<script src="src/game/gen.js"></script>
+<script src="src/game/draw.js"></script>
+<script src="src/game/actor.js"></script>
+<script src="src/game/quests.js"></script>
+<script src="src/game/achieve.js"></script>
+<script src="src/game/game.js"></script>
+<script src="src/game/player.js"></script>
+<script src="src/game/enemy.js"></script>
+<script src="src/game/world.js"></script>
+<script src="src/game/hub.js"></script>
+<script src="src/game/boss.js"></script>
+
+<script src="src/ui/ui.js"></script>
+<script src="src/ui/icons.js"></script>
+<script src="src/ui/hud.js"></script>
+<script src="src/ui/menus.js"></script>
+<script src="src/ui/shops.js"></script>
+<script src="src/ui/forgescene.js"></script>
+<script src="src/ui/touch.js"></script>
+
+<script src="src/game/scenes.js"></script>
+<script src="src/main.js"></script>
+<script>
+  (function () {
+    const err = document.getElementById('err');
+    const show = (m) => { err.style.display = 'block'; err.textContent += m + '\n'; };
+    addEventListener('error', e => show('ERROR: ' + (e.message || e) + '\n' + (e.error && e.error.stack || '')));
+    try {
+      window.F2.boot();
+      const b = document.getElementById('boot');
+      b.style.opacity = '0';
+      setTimeout(() => b.remove(), 520);
+    } catch (e) {
+      show('BOOT FAILED: ' + e.message + '\n' + e.stack);
+    }
+  })();
+</script>
 </body>
 </html>

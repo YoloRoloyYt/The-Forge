@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8"><title>mine view</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+</head><body>
+<canvas id="gl"></canvas>
+<script src="../src/engine/util.js"></script>
+<script src="../src/engine/gl.js"></script>
+<script src="../src/engine/art.js"></script>
+<script src="../src/engine/batch.js"></script>
+<script src="../src/engine/render.js"></script>
+<script src="../src/art/palette.js"></script>
+<script src="../src/art/tiles.js"></script>
+<script src="../src/art/props.js"></script>
+<script src="../src/game/data.js"></script>
+<script src="../src/game/level.js"></script>
+<script src="../src/game/gen.js"></script>
+<script src="../src/game/draw.js"></script>
+<script>
+const F = window.F2;
+F.makeEnemy = function(type,x,y,depth,elite,lvl){ return {type,x,y,depth,elite,lvl,r:10,alive:true}; };
+const VW = 640, VH = 360, S = 2;
+const cv = document.getElementById('gl');
+cv.width = VW*S; cv.height = VH*S; cv.style.width=(VW*S)+'px'; cv.style.height=(VH*S)+'px';
+F.GL.init(cv); F.GL.dw = cv.width; F.GL.dh = cv.height;
+F.Batch.init(); F.Render.init(VW, VH);
+F.Art.reset();
+const hash = (location.hash||'#1').slice(1).split(',');
+const depth = +hash[0] || 1;
+// deterministic maps so successive screenshots are comparable
+const seed = hash[3] !== undefined ? +hash[3] : 7;
+const _r = F.rng(seed * 2654435761 >>> 0); Math.random = _r;
+const D = F.DEPTHS[depth-1];
+F.Tiles.buildShared();
+F.Tiles.build(D.biome, F.BIOMES[D.biome]);
+F.Props.build();
+F.Art.build();
+
+const lv = F.genMine(depth);
+F.Render.setOcclusion(lv.occlusion(), lv.w, lv.h, F.TS);
+const B = lv.B;
+F.Render.grade(Object.assign({ ambient: B.ambient, ambientSky: B.ambientSky }, B.grade));
+
+// camera on the spawn, or a given tile
+let cx = +hash[1] || lv.spawn.x + 120, cy = +hash[2] || lv.spawn.y + 120;
+const cam = { x: cx - VW/2, y: cy - VH/2, vw: VW, vh: VH };
+cam.x = Math.max(0, Math.min(lv.w*F.TS - VW, cam.x));
+cam.y = Math.max(0, Math.min(lv.h*F.TS - VH, cam.y));
+
+function draw(t){
+  F.Render.time = t;
+  F.Render.beginFrame(cam);
+  const sorted = [];
+  F.drawTerrain(lv, cam, sorted, t);
+  F.drawProps(lv, cam, sorted, t);
+  F.drawNodes(lv, cam, sorted, t);
+  F.drawChests(lv, cam, sorted, t);
+  F.drawSorted(sorted);
+  // level lights
+  for (const L of lv.lights) {
+    if (L.x < cam.x-260 || L.x > cam.x+cam.vw+260 || L.y < cam.y-260 || L.y > cam.y+cam.vh+260) continue;
+    const fl = L.flicker ? 1 + Math.sin(t*9.3 + L.x)*L.flicker*0.3 + Math.sin(t*17.1+L.y)*L.flicker*0.15 : 1;
+    F.Render.light({ x:L.x, y:L.y, r:L.r, col:L.col, intensity:L.i*fl, z:L.z, shadow:L.shadow, spec:1 });
+  }
+  // the player's lantern
+  F.Render.pointLight(cx, cy, 300, [1.0,0.76,0.46], 4.2, 22, 1);
+  F.Render.endFrame();
+}
+window.__draw = draw;
+window.__info = { floors: lv.nodes.length, enemies: lv.enemies.length, props: lv.props.length, secret: !!lv.secret };
+draw(0.7);
+</script></body></html>

@@ -1,0 +1,186 @@
+'use strict';
+// ---------------------------------------------------------------------------
+// palette.js — every colour in the game lives here.
+//
+// BIOMES drives tile generation, lighting and colour grading together, so a
+// depth's whole mood is one table entry.
+// ---------------------------------------------------------------------------
+(function (F) {
+
+  // The UI palette: forge-lit brass and ember over cold stone.
+  F.PAL = {
+    ink: '#07060a',
+    panel: '#14111c',
+    panel2: '#1d1826',
+    panelHi: '#2a2335',
+    edge: '#3c3347',
+    brass: '#c79a4e',
+    brassHi: '#f0cb7e',
+    brassDim: '#7d6134',
+    ember: '#ff7b34',
+    emberHi: '#ffb86b',
+    text: '#efe6da',
+    textDim: '#9c9189',
+    textFaint: '#655d68',
+    good: '#6ee787',
+    bad: '#ff5f6d',
+    warn: '#ffc857',
+    cool: '#63c7ff',
+    magic: '#b76cff',
+    hp: '#e0344f',
+    hpDark: '#5a1420',
+    stam: '#4ad991',
+    stamDark: '#164a32',
+    xp: '#63c7ff',
+    gold: '#f4cf5a',
+    rarity: ['#b8b2ad', '#6fd17f', '#5aa9ff', '#b76cff', '#ff9d3c', '#ff5d6c', '#7ef9ff'],
+  };
+
+  F.BIOMES = {
+    // ---------------------------------------------------------- depth 1-2
+    greenwood: {
+      name: 'The Greenwood Cut',
+      floor: ['#413b34', '#4b443a', '#39332e', '#524a3e'],
+      grit: ['#5a5245', '#332e29', '#615844'],
+      wall: ['#5b5344', '#665c4a', '#4b4438'],
+      wallGrit: ['#70654f', '#443d32', '#7b6f56'],
+      accent: '#4e7f3a', accent2: '#2f5522',   // moss
+      accentAmt: 0.55,
+      crack: '#241f1c',
+      liquid: null,
+      dust: '#6f6550',
+      ambient: [0.013, 0.015, 0.014], ambientSky: [0.026, 0.030, 0.026], wallTop: 0.34,
+      grade: { sat: 1.05, lift: [0.004, 0.008, 0.004], gain: [1.02, 1.05, 0.98], exposure: 1.42, vignette: 0.50, heatAmt: 0.0 },
+      fogCol: '#1a2018',
+    },
+    copper: {
+      name: 'The Copper Hollows',
+      floor: ['#443a33', '#4e4136', '#3a312c', '#564639'],
+      grit: ['#6b543f', '#38302a', '#7a5c40'],
+      wall: ['#5e4c3c', '#6b5642', '#4d3e31'],
+      wallGrit: ['#8a6440', '#463829', '#9a7043'],
+      accent: '#c0742f', accent2: '#5e8f7a',   // verdigris streaks
+      accentAmt: 0.4,
+      crack: '#2a2018',
+      liquid: null,
+      dust: '#8a6a49',
+      ambient: [0.016, 0.013, 0.010], ambientSky: [0.030, 0.025, 0.019], wallTop: 0.34,
+      grade: { sat: 1.10, lift: [0.010, 0.005, 0.002], gain: [1.06, 1.00, 0.94], exposure: 1.40, vignette: 0.52, heatAmt: 0.0 },
+      fogCol: '#241a12',
+    },
+    // ------------------------------------------------------------ depth 3
+    drowned: {
+      name: 'The Drowned Gallery',
+      floor: ['#2f3a40', '#38454c', '#283238', '#3f4d54'],
+      grit: ['#47585f', '#222b30', '#516268'],
+      wall: ['#3a4850', '#44535c', '#303c43'],
+      wallGrit: ['#556770', '#28323a', '#5f727c'],
+      accent: '#3f8f7a', accent2: '#2a6f8f',
+      accentAmt: 0.5,
+      crack: '#171e22',
+      liquid: { col: '#1f5a70', col2: '#123c50', glow: '#2fa8c8', emis: 0.22, name: 'water' },
+      dust: '#4e6670',
+      ambient: [0.010, 0.016, 0.020], ambientSky: [0.020, 0.031, 0.038], wallTop: 0.32,
+      grade: { sat: 1.02, lift: [0.002, 0.006, 0.012], gain: [0.94, 1.02, 1.10], exposure: 1.38, vignette: 0.55, heatAmt: 0.0 },
+      fogCol: '#12222a',
+    },
+    // ------------------------------------------------------------ depth 4
+    magma: {
+      name: 'The Magma Vents',
+      floor: ['#332621', '#3d2c25', '#291f1b', '#46322a'],
+      grit: ['#573a2c', '#241a17', '#653f2c'],
+      wall: ['#3c2a23', '#472f26', '#31231d'],
+      wallGrit: ['#6a3f2b', '#261a15', '#7c4930'],
+      accent: '#ff5a18', accent2: '#8a1f06',
+      accentAmt: 0.28, accentGlow: '#ff6a22', accentEmis: 0.50,
+      crack: '#1a100c',
+      liquid: { col: '#f2661c', col2: '#a82706', glow: '#ffb040', emis: 0.95, name: 'lava' },
+      dust: '#8a4a28',
+      ambient: [0.024, 0.012, 0.008], ambientSky: [0.040, 0.020, 0.012], wallTop: 0.36,
+      grade: { sat: 1.12, lift: [0.016, 0.004, 0.000], gain: [1.10, 0.98, 0.90], exposure: 1.32, vignette: 0.55, heatAmt: 0.010 },
+      fogCol: '#2a1008',
+    },
+    // ------------------------------------------------------------ depth 5
+    crystal: {
+      name: 'The Crystal Cathedral',
+      floor: ['#2e2b42', '#37334e', '#26243a', '#3e3a57'],
+      grit: ['#484468', '#201e33', '#524d78'],
+      wall: ['#3a3556', '#443e63', '#302c48'],
+      wallGrit: ['#5b5488', '#282444', '#6a629c'],
+      accent: '#8f6bff', accent2: '#4de0ff',
+      accentAmt: 0.38, accentGlow: '#9d7bff', accentEmis: 0.34,
+      crack: '#171530',
+      liquid: null,
+      dust: '#6f66a8',
+      ambient: [0.015, 0.013, 0.026], ambientSky: [0.028, 0.025, 0.048], wallTop: 0.34,
+      grade: { sat: 1.14, lift: [0.006, 0.004, 0.016], gain: [1.00, 0.98, 1.12], exposure: 1.36, vignette: 0.50, heatAmt: 0.0 },
+      fogCol: '#1a1630',
+    },
+    // ------------------------------------------------------------ depth 6
+    bone: {
+      name: 'The Bone Quarry',
+      floor: ['#3b3833', '#45413a', '#312e2a', '#4d4840'],
+      grit: ['#57524a', '#2a2724', '#635c52'],
+      wall: ['#4a463e', '#55503f', '#3d3933'],
+      wallGrit: ['#6d6557', '#33302b', '#7c7364'],
+      accent: '#cfc4a6', accent2: '#6b6350',
+      accentAmt: 0.45,
+      crack: '#1e1b18',
+      liquid: { col: '#3c5a2c', col2: '#20361a', glow: '#8fd44a', emis: 0.42, name: 'ichor' },
+      dust: '#7d7666',
+      ambient: [0.016, 0.016, 0.013], ambientSky: [0.030, 0.030, 0.025], wallTop: 0.33,
+      grade: { sat: 0.94, lift: [0.008, 0.008, 0.006], gain: [1.04, 1.03, 0.96], exposure: 1.40, vignette: 0.56, heatAmt: 0.0 },
+      fogCol: '#1e1c18',
+    },
+    // ------------------------------------------------------------ depth 7
+    void: {
+      name: 'The Voidshear Rift',
+      floor: ['#221f33', '#2a2640', '#1b182a', '#322d4b'],
+      grit: ['#3b3559', '#171428', '#453e66'],
+      wall: ['#2a2540', '#332d4d', '#221e36'],
+      wallGrit: ['#463d70', '#1b1730', '#524887'],
+      accent: '#c33bff', accent2: '#2de0c0',
+      accentAmt: 0.34, accentGlow: '#c94bff', accentEmis: 0.40,
+      crack: '#120f20',
+      liquid: { col: '#3a1a6a', col2: '#1c0c3a', glow: '#b04dff', emis: 0.9, name: 'void' },
+      dust: '#6a5aa0',
+      ambient: [0.014, 0.011, 0.023], ambientSky: [0.026, 0.021, 0.042], wallTop: 0.30,
+      grade: { sat: 1.16, lift: [0.010, 0.002, 0.018], gain: [1.04, 0.94, 1.14], exposure: 1.34, vignette: 0.62, heatAmt: 0.004 },
+      fogCol: '#160f26',
+    },
+    // ------------------------------------------------------------ depth 8
+    eternal: {
+      name: 'The Heart of the Forge',
+      floor: ['#3a2f22', '#453826', '#2f261c', '#4f402b'],
+      grit: ['#6b5430', '#291f16', '#7d6234'],
+      wall: ['#443626', '#50402c', '#372c1f'],
+      wallGrit: ['#7d6134', '#2b2118', '#93733d'],
+      accent: '#ffb02e', accent2: '#ff5a18',
+      accentAmt: 0.36, accentGlow: '#ffc447', accentEmis: 0.60,
+      crack: '#1d1409',
+      liquid: { col: '#f0a52a', col2: '#c85a0a', glow: '#ffe89a', emis: 1.15, name: 'goldfire' },
+      dust: '#b08a44',
+      ambient: [0.028, 0.020, 0.010], ambientSky: [0.048, 0.035, 0.017], wallTop: 0.38,
+      grade: { sat: 1.10, lift: [0.016, 0.010, 0.000], gain: [1.10, 1.02, 0.86], exposure: 1.30, vignette: 0.50, heatAmt: 0.008 },
+      fogCol: '#2a1c08',
+    },
+    // ------------------------------------------------------------------ hub
+    hub: {
+      name: 'Emberhold',
+      paved: true,
+      floor: ['#4a423c', '#554c44', '#413931', '#5e5349'],
+      grit: ['#5c5350', '#2f2a2a', '#675c56'],
+      wall: ['#4e4643', '#584f4a', '#413a38'],
+      wallGrit: ['#6d625b', '#383230', '#7b6e64'],
+      accent: '#a8763c', accent2: '#4e7f3a',
+      accentAmt: 0.35,
+      crack: '#221d1c',
+      liquid: { col: '#e0611a', col2: '#8a2a08', glow: '#ffa040', emis: 0.62, name: 'lava' },
+      dust: '#8a7a66',
+      ambient: [0.030, 0.026, 0.023], ambientSky: [0.055, 0.047, 0.042], wallTop: 0.46,
+      grade: { sat: 1.06, lift: [0.010, 0.007, 0.004], gain: [1.06, 1.01, 0.95], exposure: 1.38, vignette: 0.44, heatAmt: 0.003 },
+      fogCol: '#241c18',
+    },
+  };
+
+})(window.F2 = window.F2 || {});

@@ -1,101 +1,80 @@
-# The Forge — Browser Game Development Plan
+# The Forge II — development plan
 
-## Context
-The design doc (`The_Forge_Game_Design_Document_v2.md`) describes a 2D top-down pixel-art Action RPG / Mining & Forging sim, originally framed for Roblox. **It is NOT a Roblox game**: it is built as a browser game, playable via a link / HTML file, with everything developed in this folder. The user supplies images and other assets; everything else is built here.
+## What this is
 
-The GDD's Appendix C says steps 1-5 (movement, mining, forging, ore-combo logic, selling) are the vertical slice, and "if that loop is not fun on its own, no content will save it." This plan follows that: slice first, content later.
+A ground-up rebuild of The Forge. The original (`forge1/`) is a Canvas2D pixel-art game; it
+is kept in the repository unchanged, because its game loop is the thing being built on.
 
-## Key decisions
-- **Stack:** Vite + TypeScript + **Phaser 3** (tilemaps, scenes, input, camera, tweens, light/mask support). Builds to a static folder deployable to itch.io / GitHub Pages / Netlify = "a link". Can also be opened locally from the build folder.
-- **Multiplayer scope:** GDD says ~12 players/server. **Ship single-player first**, with game state kept in a serialisable model separate from rendering so a server (Node + WebSocket, e.g. Colyseus) can be added later. Saves via localStorage/IndexedDB.
-- **Art:** All game objects reference sprites by key through one asset manifest. Until the user supplies images, use **procedurally generated placeholder pixel art** so everything is playable from day one. Dropping a file in `public/assets/` and mapping it in the manifest replaces the placeholder. Ore-derived item appearance (GDD 6.1 / 9.3) is done by palette-tinting layered sprites at runtime.
-- **Data-driven:** ores, traits, weapons, enemies, quests, runes live in `src/data/*.ts` (or JSON), so content phases are mostly data entry.
-- **Resolution:** low internal resolution (e.g. 480x270), integer-scaled, pixel-perfect, `roundPixels`.
+The brief for the rebuild:
 
-## Project structure
-```
-The Forge/
-  index.html, package.json, vite.config.ts, tsconfig.json
-  public/assets/         <- user drops images/audio here
-  src/
-    main.ts              Phaser config, scene registry
-    core/                game state model, save/load, event bus, RNG, asset manifest
-    scenes/              Boot, Hub, Cave, Forge, UI overlay, Boss arenas
-    systems/             movement, mining, stamina, combat, ai, lighting, forging, economy, quests, runes, races
-    data/                ores, traits, weapons, armour, enemies, potions, spells, quests, worlds
-    ui/                  inventory, forge UI, shop, quest board, HUD (pixel-styled)
-  tests/                 Vitest unit tests for pure logic (forge maths, ore combos, economy)
-```
+- stay 2D, but raise the graphics to a standard worth staring at
+- keep the mines the same shape and size, and make where the ore spawns random
+- more boss levels and more mining levels
+- a full overhaul of the balancing
+- subtitle: *"As a child, I yearned for the mines."*
 
-## Phases
+## What changed from The Forge 1
 
-### Phase 0 — Scaffold
-Vite + TS + Phaser project, placeholder-art generator, asset manifest, scene flow (Boot → Hub → Cave), pixel-perfect scaling, save/load stub, Vitest.
+| | Forge 1 | Forge II |
+|---|---|---|
+| Renderer | Canvas2D, 480×270 | WebGL2 deferred: normal-mapped lights, ray-marched shadows, bloom, ACES grade |
+| Sprites | flat colour, drawn in code | albedo + height + emissive, drawn in code, normals derived |
+| Characters | redrawn per pose | cut-out skeletons with blendable animation |
+| Tiles | 16px, 1 variant | 32px, 8 variants + flips + world-space macro noise |
+| UI | 5×7 bitmap font on the game canvas | separate Canvas2D layer at display resolution |
+| Mine floors | 3 | 8, each its own biome, lighting and grade |
+| Bosses | 1 | 7, four phases each, one framework |
+| Ores | 11 | 20, on a value ladder that doubles every depth |
+| Weapon classes | 4 | 6 · armour 4 → 6 |
+| Balance | hand-set | fitted against `tools/balance.js` |
 
-### Phase 1 — Vertical slice (GDD App. C steps 1-5) — the make-or-break milestone
-1. **Top-down movement + camera** — 8-direction, sprint, tilemap collision, one cave map.
-2. **Mining** — nodes with hidden HP (pebble / rock / boulder / vein / crystal), pickaxe Mine Power, shared **stamina** meter, ore inventory, drops by rarity tier (GDD 31).
-3. **Forging minigame (4 stages)** — Crucible ore selection, Bellows (sustained heat-zone hold), Pour (stop at fill), Hammering (shrinking-ring timing circles). Pure-logic scorer separate from UI; Poor / Good / Great / Perfect grade with 1.3-1.5x quality multiplier (GDD 7). Effects: heat colour ramp, sparks, steam quench (GDD 36).
-4. **Ore-combination logic** — ore count → item class (3-9 / 10-25 / 26-39 / 40+), filler / multiplier / trait ore roles, stat generation, palette from dominant ore. Unit-tested.
-5. **Sell + Gold loop** — vendor NPC, sell price = f(ore value, quality), first pickaxe upgrade as the Gold sink.
+The mine generator is deliberately *unchanged*: 64 × 52, 46% initial wall fill, four
+smoothing passes at the five-neighbour rule, largest region kept, entrance north-west, shaft
+at the far point. The mines feel the size and shape they always did. Everything placed inside
+them is rolled fresh every descent.
 
-**Exit gate:** play the loop for 15+ minutes. If mine → forge → sell → upgrade isn't fun, tune here before continuing.
+## Built
 
-### Phase 2 — Combat and the mine as hazard (App. C 6-8)
-- Light / heavy attack with committed animations and **hit arcs** per weapon class (dagger cone → colossal sweep), dash with i-frames (Q), block (F) draining stamina, guard break, no parry (GDD 4, 9.1).
-- Armour weight classes affect speed / HP / damage reduction.
-- Enemies: Grunt, Rogue, Bomber, then **Elite guarding a rich vein** (A6); simple state-machine AI (patrol → aggro → telegraph → attack).
-- **Lantern radial-light darkness mask** (valuable nodes only visible in light) and **second cave floor** via shaft (A4). Hazards: magma, collapse.
-- Death: respawn at checkpoint, lose small Gold, keep gear (GDD 28).
+- [x] **Engine** — WebGL2 context, MRT sprite batcher, instanced normal-mapped lights with
+      ray-marched tile shadows, linear-light composite, progressive bloom, ACES tonemap,
+      per-biome colour grading, heat shimmer, vignette, grain, chromatic aberration,
+      sharp-bilinear upscale
+- [x] **Art pipeline** — three-layer painter (albedo / height / emissive), Sobel normal
+      generation, explicit normal overrides for walls and water, runtime atlas packing with
+      edge padding, CPU-side sheet kept for menu icons
+- [x] **Animation** — cut-out skeleton, pose evaluation, silhouette outline pass, equipment
+      layering, per-item grip angles
+- [x] **Content** — 20 ores, 8 traits, 6 weapon and 6 armour classes, 10 pickaxes, 6 lamps,
+      9 potions, 9 runes, 9 enchantments, 16 bloodlines over 7 rarity tiers, 10 enemy types,
+      8 depths, 7 bosses, 24 deeds, 8 kinds of generated job
+- [x] **Gameplay** — movement, sprint, stamina, mining, three attacks, dash i-frames, parry
+      cone, potions, loot magnetism, elites guarding seams, sealed caverns, hazards, death
+- [x] **The forge** — crucible with live preview, bellows, pour, hammering, quality reveal
+- [x] **Hub** — Emberhold with six shops, the Great Forge, the shaft and the Deep Gate
+- [x] **Bosses** — arena generation, four-phase framework, 17 move names over 10 implemented
+      moves, telegraphs, adds, arena camera, reward screen, the gate
+- [x] **UI** — HUD, minimap, inventory, jobs, deeds, settings, help, six shop screens,
+      title, pause, death, map
+- [x] **Touch** — stick, buttons, automatic aim, appears on first touch
+- [x] **Balance** — economy simulation, numerically solved XP curve, 51 logic tests
 
-### Phase 3 — Progression systems (App. C 9-11)
-- Levels / XP (pacing only, no direct stats), World 2 gate (Lv 10 + quest chain).
-- Quest board with the GDD's quest types (combat, gather, forge-quality, exploration, boss, challenge, NPC).
-- Enhancer NPC, Runemaker + runes (lifesteal, elemental, pickaxe runes), permanent installs.
-- Potions and spells (GDD 10-11), powerups (27).
-- Races (spin / reroll, 7 tiers, soft pity, economy race) (A2).
-- Hub NPCs: pickaxe vendor, potion vendor, Runemaker, Enhancer, storage.
+## Not built
 
-### Phase 4 — First boss + World 1 polish (App. C 12)
-- Multi-phase boss framework (4 phases per GDD 24), built once and reused. Ancient Grove Guardian first.
-- Boss recommended-power system (GDD 25), zone boss in the hard sub-biome, secret area, achievements, tutorial / onboarding, audio, juice (screen shake, hit-stop), settings / keybinds, **touch controls** (large dash / block buttons per GDD 4).
-- **Release 1:** one polished world, playable at a public URL.
-
-### Phase 5 — World 2 and 3 (GDD 15 staging)
-- World 2 (Ancient Kingdom + Molten Depths hard zone: heat / lava, elemental attacks) and World 3 (Frostpeak: slow, ranged, mythic ore). Each is mostly data + maps + one boss using the Phase 4 framework. Mob roles Tank / Assassin / Archer / Mage / Healer added here.
-
-### Phase 6 — Meta and live-service features
-Player forge (housing / customisation), hub growth, Masterwork (98-100%) bonuses, New Game+, seasonal events, promo codes, cloud saves.
-
-### Phase 7 — Multiplayer (optional, last)
-Authoritative Node / WebSocket server, ~12-player rooms, shared hub, synced mobs / nodes. Enabled by the Phase 0 decision to keep game state separate from rendering.
-
-### Later updates
-Remaining worlds (Whispering Woods, Scorched Wastes, Voidlands, Forge of Eternity).
-
-## Critical files (Phase 0-1)
-`src/core/gameState.ts`, `src/core/assets.ts` (manifest + placeholder generator), `src/systems/forging/{crucible,bellows,pour,hammer,quality}.ts`, `src/systems/mining.ts`, `src/systems/stamina.ts`, `src/data/ores.ts`, `src/scenes/{Boot,Hub,Cave,Forge}Scene.ts`.
+- [ ] A hand-authored soundtrack. Audio is synthesised; there is no music layer yet.
+- [ ] Key rebinding.
+- [ ] Player forge / housing, New Game+, seasonal events (GDD sections 29, 40, A7).
+- [ ] Multiplayer. Game state is kept separate from rendering so it stays possible.
+- [ ] A hosted public URL.
 
 ## Verification
-- `npm run dev` → play in browser; `npm run build` + `npm run preview` confirms the static deploy works.
-- Vitest unit tests for forge scoring, ore-combo class / multiplier / trait resolution, price formula, stamina, save/load round-trip.
-- Per-phase manual playtest checklist (Phase 1 gate above); run in Chromium and check a mobile viewport in devtools.
-- Frame-rate check with 12+ entities and the lighting mask on.
 
-## Open items
-- Which assets the user will supply first (player, ore, tiles?) — placeholders cover the rest.
-- Preferred hosting target (itch.io vs GitHub Pages vs other) at Release 1.
+- `tests.html` — 51 logic tests over tables, forge maths, economy and progression
+- `node tools/balance.js` — the economy dry run
+- `tools/mineview.html#<depth>`, `tools/charview.html`, `tools/rtest.html` — isolated art viewers
+- `node tools/shot.js <page> <out.png>` — headless screenshots of any of the above
 
-## Stack change (actual build)
-Node.js is not installed on the dev machine, so the Vite/TypeScript/Phaser stack above was replaced by **dependency-free HTML5 Canvas + plain JavaScript** (classic scripts, no build step). It opens straight from `index.html` and deploys to any static host. The architecture (data tables, pure forge logic, scenes, procedural placeholder art with PNG override) is unchanged. Tests run in-browser via `tests.html` instead of Vitest. See `README.md`.
+## Open questions
 
-## Progress tracker
-- [x] Phase 0 — Scaffold (canvas, input, audio, save, scene stack, placeholder art, tests)
-- [x] Phase 1 — Vertical slice: movement, mining + stamina, 4-stage forging, ore-combo logic, sell loop, pickaxe/lantern upgrades. **Still needs the 15-minute human playtest / balance pass (exit gate).**
-- [x] Phase 2 — Combat + mine hazards: light/heavy/dash/parry, Grunt/Rogue/Bomber, elites guarding veins, lantern darkness, 3 floors, magma, death rules, enemy levels
-- [x] Phase 3 — Progression: levels/XP + floor gates, quest board with 8 quest types (gather, kill, forge, floor, challenge, exploration, NPC delivery, boss), Enhancer, Runemaker, potions + hotbar, **races** (spins, 7 tiers, soft pity, economy races), **spells** (5 weapon, 4 armour), **powerups** (6), hub NPCs. Not done: personal storage chest.
-- [x] Phase 4 — (mostly) **Ancient Grove Guardian** 4-phase boss + arena + recommended-power gate, hidden caverns with sealed rock + chest, achievements (12), touch controls, settings (volume/mute/shake), tutorial hints. Not done: key rebinding, real audio/art (procedural placeholders remain), a hosted public URL. **Release 1 is waiting on a human playtest and balance pass.**
-- [x] Art & UI polish pass — shared palette and component set (panels, beveled buttons, bars, slots, rows, chips, tooltips), outlined sprites throughout, redrawn characters/enemies/pickaxes/weapons/armour/NPCs, layered trees and cave wall faces, framed HUD with level medallion, rebuilt inventory/shops/quest board/race shrine/boss gate/forge screens, live item preview in the crucible
-- [ ] Phase 5 — Worlds 2 and 3, Tank/Assassin/Archer/Mage/Healer enemies
-- [ ] Phase 6 — Player forge, hub growth, Masterwork extras, New Game+, events
-- [ ] Phase 7 — Multiplayer
+- Whether depth VIII should have a second, harder variant rather than ending at the First
+  Forger — the level cap currently arrives a little before the content does.
+- Whether the parry should have a shorter window and a shorter cooldown; it is generous now.

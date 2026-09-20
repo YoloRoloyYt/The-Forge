@@ -1,0 +1,94 @@
+<!doctype html><html><head><meta charset="utf-8"><title>char view</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+</head><body><canvas id="gl"></canvas>
+<script src="../src/engine/util.js"></script>
+<script src="../src/engine/gl.js"></script>
+<script src="../src/engine/art.js"></script>
+<script src="../src/engine/batch.js"></script>
+<script src="../src/engine/render.js"></script>
+<script src="../src/engine/rig.js"></script>
+<script src="../src/art/palette.js"></script>
+<script src="../src/art/tiles.js"></script>
+<script src="../src/art/props.js"></script>
+<script src="../src/art/chars.js"></script>
+<script src="../src/game/data.js"></script>
+<script src="../src/game/actor.js"></script>
+<script>
+const F = window.F2;
+const VW = 640, VH = 360, S = 2;
+const cv = document.getElementById('gl');
+cv.width=VW*S; cv.height=VH*S; cv.style.width=(VW*S)+'px'; cv.style.height=(VH*S)+'px';
+F.GL.init(cv); F.GL.dw=cv.width; F.GL.dh=cv.height;
+F.Batch.init(); F.Render.init(VW,VH);
+F.Art.reset();
+F.Tiles.buildShared();
+F.Tiles.build('greenwood', F.BIOMES.greenwood);
+F.Props.build(); F.Chars.build();
+F.Art.build();
+F.Render.grade(Object.assign({ ambient:[0.03,0.032,0.035], ambientSky:[0.06,0.064,0.07] }, F.BIOMES.greenwood.grade));
+F.Render.macroAmt = 0.4;
+
+const cam = { x:0, y:0, vw:VW, vh:VH };
+const SC = 0.78;
+const figs = [];
+const gearSets = [
+  { name:'none', eq:{} },
+  { name:'light', eq:{ head:{cls:'light',color:'#9aa4b4'}, chest:{cls:'light',color:'#9aa4b4'}, legs:{cls:'light',color:'#7a6a58'}, boots:{cls:'light',color:'#5b4630'} } },
+  { name:'heavy', eq:{ head:{cls:'heavy',color:'#7fb4d9'}, chest:{cls:'heavy',color:'#7fb4d9'}, legs:{cls:'heavy',color:'#5f86a4'}, boots:{cls:'heavy',color:'#4a4650'} } },
+  { name:'titan', eq:{ head:{cls:'titan',color:'#ffc24a'}, chest:{cls:'titan',color:'#ffc24a'}, legs:{cls:'titan',color:'#c8425e'}, boots:{cls:'titan',color:'#4a4650'} } },
+];
+const helds = [
+  { kind:'pick', color:'#b9c0cf' },
+  { cls:'sword', color:'#f0cb4b' },
+  { cls:'great', color:'#4a74ff', glowCol:'#63d8ff' },
+  { cls:'maul',  color:'#c8425e', glowCol:'#ff6a2a' },
+];
+for (let i=0;i<4;i++){
+  const rig = F.makeRig();
+  figs.push({ rig, x: 90+i*150, y: 150, eq: gearSets[i].eq, held: helds[i],
+    animState:'walk', animT:0, moveSpeed: i%2?0.9:0, aim:0, facing:'S', seed:i,
+    swingT:0, swingDur:0, mineT:0, hurtT:0, dashT:0, deadT:0, holding:true, aimLocal: -0.3 });
+}
+// second row: action poses
+const acts = [
+  { label:'mine',   mineT:0.55, holding:true, held:{kind:'pick',color:'#b9c0cf'} },
+  { label:'windup', swingT:0.22, swingDur:0.5, windFrac:0.4, holding:true, held:{cls:'great',color:'#4a74ff'} },
+  { label:'swing',  swingT:0.10, swingDur:0.5, windFrac:0.4, holding:true, held:{cls:'great',color:'#4a74ff'} },
+  { label:'back',   facing:'N', holding:true, held:{cls:'sword',color:'#b9c0cf'}, moveSpeed:0.8 },
+];
+for (let i=0;i<4;i++){
+  const rig = F.makeRig();
+  figs.push(Object.assign({ rig, x: 90+i*150, y: 300, eq: gearSets[2].eq,
+    animState:'idle', animT:0.2, moveSpeed:0, aim:0, facing:'S', seed:i+9,
+    swingT:0, swingDur:0, mineT:0, hurtT:0, dashT:0, deadT:0, holding:true, aimLocal:-0.3 }, acts[i]));
+}
+
+function draw(t){
+  F.Render.time=t;
+  F.Render.beginFrame(cam);
+  const fl = F.Art.get('greenwood_floor0');
+  for (let y=0;y<VH/32+1;y++) for (let x=0;x<VW/32+1;x++)
+    F.Batch.push(fl, x*32, y*32, { ax:0, ay:0, height:0.42 });
+  const sorted=[];
+  for (const f of figs){
+    f.animT = (t*1.6*(f.moveSpeed||1))%1;
+    F.poseActor(f.rig, f, t);
+    const tints = F.dressRig(f.rig, f.eq, { lantern:true });
+    F.armRig(f.rig, f.held, tints);
+    f.rig.pose({ x:f.x, y:f.y, sx:SC, sy:SC });
+    sorted.push({ y:f.y, draw(){
+      F.Batch.push(F.Art.get('shadow'), f.x, f.y+1, { sx:0.85, sy:0.7, height:0 });
+      f.rig.drawOutlined({ tints, height:1 }, 1.1);
+    }});
+  }
+  F.drawSorted ? F.drawSorted(sorted) : sorted.forEach(s=>s.draw());
+  F.Render.pointLight(320, 40, 700, [1.0,0.84,0.66], 1.5, 120, 0);
+  F.Render.pointLight(140, 210, 280, [1.0,0.58,0.28], 2.2, 34, 0);
+  F.Render.pointLight(540, 320, 280, [0.35,0.6,1.0], 2.0, 34, 0);
+  F.Render.endFrame();
+}
+// drawSorted lives in level.js which we did not load; do it inline
+F.drawSorted = function(list){ list.sort((a,b)=>a.y-b.y); for(const e of list) e.draw(); };
+window.__draw=draw;
+draw(0.35);
+</script></body></html>
