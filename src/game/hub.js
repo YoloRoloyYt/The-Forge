@@ -186,6 +186,7 @@
     }
 
     lv.rollVariants(4242);
+    lv.placeRafts(4242);
     lv.noMap = false;
     return lv;
   };

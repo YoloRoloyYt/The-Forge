@@ -9,6 +9,7 @@
 (function (F) {
 
   const TS = F.TS;
+  const SHORE_H = 14;
   const T = F.T = { VOID: 0, FLOOR: 1, WALL: 2, LIQUID: 3, FLOORLIT: 4, RAIL: 5, BUILD: 6, WOOD: 7 };
   F.MINE_W = 64; F.MINE_H = 52;          // unchanged from The Forge 1
 
@@ -45,6 +46,36 @@
       for (let i = 0; i < o.length; i++) o[i] = (this.tiles[i] === T.WALL || this.tiles[i] === T.BUILD) ? 255 : 0;
       return o;
     }
+    /**
+     * Scatter crust rafts over the pools. They go in as decals, so they are
+     * placed in world space and break up the pool at a scale the tile art
+     * cannot reach without giving the grid away.
+     */
+    placeRafts(seed) {
+      if (!this.B || !this.B.liquid || this.B.liquid.emis < 0.45) return;
+      const r = F.rng((seed || 991) ^ 0x5bd1);
+      const taken = [];
+      for (let y = 1; y < this.h - 1; y++) {
+        for (let x = 1; x < this.w - 1; x++) {
+          if (this.tiles[y * this.w + x] !== T.LIQUID) continue;
+          // only well inside a pool: a raft hanging over the bank looks pasted on
+          let n = 0;
+          for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++)
+            if (this.t(x + i, y + j) === T.LIQUID) n++;
+          if (n < 9 || r() > 0.16) continue;
+          const px = (x + 0.5) * TS + (r() - 0.5) * 14, py = (y + 0.5) * TS + (r() - 0.5) * 12;
+          let clash = false;
+          for (const q of taken) if (Math.abs(q.x - px) < 74 && Math.abs(q.y - py) < 56) { clash = true; break; }
+          if (clash) continue;
+          taken.push({ x: px, y: py });
+          this.decals.push({
+            sprite: this.biome + '_raft' + ((r() * 3) | 0), x: px, y: py,
+            rot: r() * 6.2832, alpha: 1, scale: 0.55 + r() * 0.5,
+          });
+        }
+      }
+    }
+
     rollVariants(seed) {
       const r = F.rng(seed || 12345);
       const n = F.noise2(seed || 12345);
@@ -112,7 +143,10 @@
     const y0 = Math.max(0, Math.floor(cam.y / TS) - 2);
     const x1 = Math.min(lv.w - 1, Math.ceil((cam.x + cam.vw) / TS) + 1);
     const y1 = Math.min(lv.h - 1, Math.ceil((cam.y + cam.vh) / TS) + 2);
-    const liqFrame = lv.B.liquid ? ((time * 6) | 0) % 4 : 0;
+    // Every liquid tile used to advance on the same frame, so a lava pool blinked
+    // instead of flowing. Phasing by world position turns the cycle into a wave
+    // travelling across the pool.
+    const liqT = lv.B.liquid ? time * 7 : 0;
     const topShade = lv.B.wallTop === undefined ? 0.4 : lv.B.wallTop;
     const shadeArr = lv.shade;
     // cache the 256 possible grey tints so the inner loop does no allocation
@@ -154,7 +188,8 @@
         // flipping a tile costs nothing and multiplies the variant count by four
         const ox = fx ? TS : 0, oy = fy ? TS : 0;
         if (t === T.LIQUID) {
-          Bt.push(A.get(id + '_liq' + ((v + liqFrame) & 3)), px, py, { ax: 0, ay: 0, height: 0.18 });
+          const fr = (((liqT + x * 0.8 + y * 1.7) | 0) % 6 + 6) % 6;
+          Bt.push(A.get(id + '_liq' + fr), px, py, { ax: 0, ay: 0, height: 0.18 });
         } else if (t === T.WALL) {
           Bt.push(A.get(id + '_wall' + (v % 6)), px + ox, py + oy,
             { ax: 0, ay: 0, sx: fx ? -1 : 1, sy: fy ? -1 : 1, height: 1, tint: topTintOf[sh] });
@@ -163,6 +198,25 @@
           Bt.push(A.get(id + '_floor' + v), px + ox, py + oy,
             { ax: 0, ay: 0, sx: fx ? -1 : 1, sy: fy ? -1 : 1, height: 0.42,
               tint: z ? zoneCache[z][sh] : tintOf[sh] });
+        }
+      }
+    }
+
+    // ---- pass 1b: shoreline crust, hiding the straight cut where a pool ends
+    if (lv.B.liquid) {
+      for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) {
+          if (lv.tiles[y * lv.w + x] !== T.LIQUID) continue;
+          const px = x * TS, py = y * TS, sv = ((x * 7 + y * 13) & 1);
+          const bank = (nx, ny) => {
+            const n = lv.t(nx, ny);
+            return n !== T.LIQUID && n !== T.VOID && n !== T.WALL;
+          };
+          const o = { ax: 0, ay: 0, height: 0.3 };
+          if (bank(x, y - 1)) Bt.push(A.get(id + '_shoren' + sv), px, py, o);
+          if (bank(x, y + 1)) Bt.push(A.get(id + '_shores' + sv), px, py + TS - SHORE_H, o);
+          if (bank(x - 1, y)) Bt.push(A.get(id + '_shorew' + sv), px, py, o);
+          if (bank(x + 1, y)) Bt.push(A.get(id + '_shoree' + sv), px + TS - SHORE_H, py, o);
         }
       }
     }

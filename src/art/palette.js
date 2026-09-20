@@ -158,7 +158,7 @@
       accent: '#ffb02e', accent2: '#ff5a18',
       accentAmt: 0.36, accentGlow: '#ffc447', accentEmis: 0.60,
       crack: '#1d1409',
-      liquid: { col: '#f0a52a', col2: '#c85a0a', glow: '#ffe89a', emis: 1.15, name: 'goldfire' },
+      liquid: { col: '#f0a52a', col2: '#c85a0a', glow: '#ffe89a', emis: 0.85, name: 'goldfire' },
       dust: '#b08a44',
       ambient: [0.028, 0.020, 0.010], ambientSky: [0.048, 0.035, 0.017], wallTop: 0.38,
       grade: { haze: 0.12, sat: 1.10, lift: [0.016, 0.010, 0.000], gain: [1.10, 1.02, 0.86], exposure: 1.30, vignette: 0.50, heatAmt: 0.008 },

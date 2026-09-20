@@ -27,6 +27,7 @@
       this.prompt = null;
       lv.drops = lv.drops || [];
       this.ambientT = 0;
+      this.drips = [];
     }
 
     enter() {
@@ -363,6 +364,10 @@
       for (let i = this.slashes.length - 1; i >= 0; i--) { this.slashes[i].t -= dt; if (this.slashes[i].t <= 0) this.slashes.splice(i, 1); }
       for (let i = this.beams.length - 1; i >= 0; i--) { this.beams[i].t -= dt; if (this.beams[i].t <= 0) this.beams.splice(i, 1); }
       for (let i = this.rings.length - 1; i >= 0; i--) { this.rings[i].t -= dt; if (this.rings[i].t <= 0) this.rings.splice(i, 1); }
+      for (let i = this.drips.length - 1; i >= 0; i--) {
+        this.drips[i].t -= dt;
+        if (this.drips[i].t <= 0) this.drips.splice(i, 1);
+      }
       for (const n of this.lv.nodes) {
         if (n.flash > 0) n.flash -= dt * 5;
         if (n.shake > 0) n.shake -= dt * 6;
@@ -370,26 +375,77 @@
       }
     }
 
-    /** Dust motes, embers and drips — the room breathing. */
+    /**
+     * The room breathing: dust in the lamplight, embers over molten rock, steam
+     * where it meets the air, drips off the ceiling, and the occasional pebble
+     * letting go. Cheap, but it is the difference between a cave and a diagram.
+     */
     ambient(dt) {
-      const B = this.lv.B, cam = this.cam;
+      const B = this.lv.B, lv = this.lv, cam = this.cam;
       this.ambientT -= dt;
       if (this.ambientT > 0) return;
-      this.ambientT = 0.05;
-      if (F.Particles.n > 900) return;
+      this.ambientT = 0.045;
+      if (F.Particles.n > 1100) return;
+
+      // --- dust motes drifting through the lantern's reach
       const x = cam.x + Math.random() * cam.vw, y = cam.y + Math.random() * cam.vh;
-      if (B.liquid && B.liquid.emis > 0.6) {
-        F.Particles.spawn({
-          x, y, vx: F.U.rnd(-6, 6), vy: F.U.rnd(-22, -8), life: F.U.rnd(1.4, 3),
-          sprite: 'spark', col: B.liquid.glow, col1: '#3a0a00', size: 2.4, size1: 0,
-          emis: 2.6, drag: 0.5, light: 0,
-        });
-      } else {
-        F.Particles.spawn({
-          x, y, vx: F.U.rnd(-5, 5), vy: F.U.rnd(-6, 2), life: F.U.rnd(2, 4.5),
-          sprite: 'dust', col: B.dust, size: 2.2, size1: 1.2, alpha: 0.22,
-          emis: 0, drag: 0.3,
-        });
+      F.Particles.spawn({
+        x, y, vx: F.U.rnd(-5, 5), vy: F.U.rnd(-6, 2), life: F.U.rnd(2.2, 5),
+        sprite: 'dust', col: B.dust, size: 1.8 + Math.random() * 1.4, size1: 1,
+        alpha: 0.10 + Math.random() * 0.16, emis: 0, drag: 0.3,
+      });
+
+      // --- whatever the liquid in this biome does
+      const L = B.liquid;
+      if (L) {
+        const tx = Math.floor(x / TS), ty = Math.floor(y / TS);
+        if (lv.t(tx, ty) === F.T.LIQUID) {
+          if (L.emis > 0.6) {
+            // embers rising off molten rock, cooling as they go
+            F.Particles.spawn({
+              x, y, vx: F.U.rnd(-8, 8), vy: F.U.rnd(-30, -12), life: F.U.rnd(1.2, 2.8),
+              sprite: 'spark', col: L.glow, col1: '#3a0a00', size: 2.2, size1: 0,
+              emis: 2.8, drag: 0.6, light: Math.random() < 0.12 ? 26 : 0,
+            });
+            if (Math.random() < 0.25) F.Particles.spawn({
+              x, y: y - 6, vx: F.U.rnd(-5, 5), vy: F.U.rnd(-16, -7), life: F.U.rnd(1.4, 2.6),
+              sprite: 'smoke', col: '#6a4a3a', col1: '#241a16', size: 7, size1: 20,
+              alpha: 0.16, emis: 0, drag: 0.8,
+            });
+          } else {
+            // bubbles breaking the surface
+            if (Math.random() < 0.5) F.Particles.spawn({
+              x, y, vx: F.U.rnd(-4, 4), vy: F.U.rnd(-9, -3), life: F.U.rnd(0.7, 1.6),
+              sprite: 'blob', col: L.glow, size: 1.6, size1: 3.2,
+              alpha: 0.35, emis: 0.9, drag: 1.2,
+            });
+          }
+        }
+      }
+
+      // --- a drip from the ceiling, landing with a ring
+      if (Math.random() < 0.22) {
+        const dx = cam.x + Math.random() * cam.vw, dy = cam.y + Math.random() * cam.vh;
+        if (lv.t(Math.floor(dx / TS), Math.floor(dy / TS)) === F.T.FLOOR) {
+          F.Particles.spawn({
+            x: dx, y: dy - 26, vx: 0, vy: 90, life: 0.45,
+            sprite: 'spark', col: F.Col.mix(B.dust, '#ffffff', 0.5), size: 1.6, size1: 1.2,
+            alpha: 0.5, emis: 0.5, drag: 0, grav: 260,
+          });
+          this.drips.push({ x: dx, y: dy, t: 0.45 });
+        }
+      }
+
+      // --- grit shaken loose from a wall face
+      if (Math.random() < 0.10) {
+        const gx = cam.x + Math.random() * cam.vw, gy = cam.y + Math.random() * cam.vh;
+        if (lv.t(Math.floor(gx / TS), Math.floor(gy / TS) - 1) === F.T.WALL &&
+            lv.t(Math.floor(gx / TS), Math.floor(gy / TS)) === F.T.FLOOR) {
+          F.Particles.burst(gx, gy - 10, 3, {
+            sprite: 'shard', col: B.dust, size: 1.6, size1: 0, life: 0.9,
+            speed0: 2, speed1: 16, emis: 0, alpha: 0.55, drag: 1.4, grav: 220,
+          });
+        }
       }
     }
 
@@ -517,6 +573,17 @@
       for (const b of this.projectiles) {
         Bt.push(A.get(b.sprite), b.x, b.y, { rot: b.a, tint: F.Col.tint(b.col), emis: b.emis, height: 0.4 });
       }
+      // ripples where drips land
+      for (const d of this.drips) {
+        const k = 1 - d.t / 0.45;
+        if (k < 0.55) continue;
+        const kk = (k - 0.55) / 0.45;
+        Bt.push(A.get('ring'), d.x, d.y, {
+          scale: F.U.lerp(0.06, 0.34, kk), alpha: (1 - kk) * 0.5,
+          tint: F.Col.tint(F.Col.mix(this.lv.B.dust, '#ffffff', 0.6)), emis: 0.8, height: 0,
+        });
+      }
+
       // the parry guard, drawn as a shimmering arc
       const p = this.player;
       if (p.parryT > 0) {
@@ -536,6 +603,21 @@
         const fl = L.flicker ? 1 + Math.sin(t * 9.3 + L.x * 0.13) * L.flicker * 0.32 + Math.sin(t * 17.1 + L.y * 0.07) * L.flicker * 0.16 : 1;
         F.Render.light({ x: L.x, y: L.y, r: L.r, col: L.col, intensity: L.i * fl, z: L.z, shadow: L.shadow, spec: 1 });
       }
+      // A molten pool should light the bank it sits against. Emissive pixels
+      // glow but do not illuminate anything, so the pools carry their own
+      // sparse lights, clustered once per level and flickering on the spot.
+      if (lv.B.liquid && lv.B.liquid.emis > 0.45) {
+        const pool = poolLights(lv);
+        const col = F.Col.lin(lv.B.liquid.glow, 1);
+        let used = 0;
+        for (const q of pool) {
+          if (q.x < cam.x - 160 || q.x > cam.x + cam.vw + 160 ||
+              q.y < cam.y - 160 || q.y > cam.y + cam.vh + 160) continue;
+          if (++used > 22) break;
+          const fl = 1 + Math.sin(t * 3.1 + q.x * 0.09) * 0.20 + Math.sin(t * 5.7 + q.y * 0.05) * 0.12;
+          F.Render.light({ x: q.x, y: q.y, r: q.r * fl, col, intensity: 0.55 * q.w * fl, z: 4, shadow: 0.55, spec: 0.7 });
+        }
+      }
       // the player's lantern, hanging where the sprite says it hangs
       if (!p.dead) {
         const lp = p.lanternPos();
@@ -549,6 +631,34 @@
       if (p.parryFlash > 0)
         F.Render.light({ x: p.x, y: p.y - 14, r: 160, col: [1, 0.9, 0.6], intensity: 3 * p.parryFlash, z: 20, shadow: 0, spec: 1 });
     }
+  }
+
+  /**
+   * Cluster a level's liquid tiles into a handful of light positions, once.
+   * Blocks that touch a bank get the brighter light: that is where the glow
+   * actually does visible work.
+   */
+  function poolLights(lv) {
+    if (lv._poolLights) return lv._poolLights;
+    const out = [], K = 3;
+    for (let by = 0; by < lv.h; by += K) {
+      for (let bx = 0; bx < lv.w; bx += K) {
+        let n = 0, sx = 0, sy = 0, edge = 0;
+        for (let y = by; y < Math.min(by + K, lv.h); y++) {
+          for (let x = bx; x < Math.min(bx + K, lv.w); x++) {
+            if (lv.tiles[y * lv.w + x] !== F.T.LIQUID) continue;
+            n++; sx += x; sy += y;
+            if (lv.t(x - 1, y) === F.T.FLOOR || lv.t(x + 1, y) === F.T.FLOOR ||
+                lv.t(x, y - 1) === F.T.FLOOR || lv.t(x, y + 1) === F.T.FLOOR) edge++;
+          }
+        }
+        if (n < 2) continue;
+        out.push({ x: (sx / n + 0.5) * TS, y: (sy / n + 0.5) * TS,
+          r: 108 + n * 9, w: edge ? 1 : 0.55 });
+      }
+    }
+    lv._poolLights = out;
+    return out;
   }
 
   F.WorldScene = WorldScene;

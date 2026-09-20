@@ -254,6 +254,7 @@
     }
 
     lv.rollVariants((Math.random() * 1e9) | 0);
+    lv.placeRafts((Math.random() * 1e9) | 0);
     return lv;
   }
 
