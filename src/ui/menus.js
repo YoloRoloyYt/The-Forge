@@ -406,7 +406,7 @@
         slider('Music', 'music', 0, 1, v => Math.round(v * 100) + '%', v => F.Audio.setMusicVolume(v));
         slider('Screen shake', 'shake', 0, 1.5, v => Math.round(v * 100) + '%');
         slider('Film grain', 'grain', 0, 2, v => Math.round(v * 100) + '%', () => F.Quality.apply());
-        slider('Bloom', 'bloom', 0, 2, v => Math.round(v * 100) + '%', () => { F.Render.bloomAmt = 0.58 * st.bloom; });
+        slider('Bloom', 'bloom', 0, 2, v => Math.round(v * 100) + '%', () => { F.Render.bloomAmt = F.Render.bloomBase * st.bloom; });
 
         const tog = (label, key, apply) => {
           U.text(label, x + 44, yy + 6, { size: 15, col: P.text });

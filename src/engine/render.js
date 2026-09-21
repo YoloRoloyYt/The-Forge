@@ -305,10 +305,18 @@
     ambient: [0.10, 0.11, 0.15],
     ambientSky: [0.16, 0.17, 0.24],
     aoStrength: 0.55,
-    emisBoost: 1.0,
-    bloomAmt: 0.58, bloomThreshold: 0.92, bloomRadius: 1.35,
+    // Bloom and the emissive boost are the two knobs that decide whether a lit
+    // room reads or just glares. Held low on purpose: only genuinely bright
+    // things should bloom, or every torch smears over whatever is standing in
+    // front of it — which is how a shopkeeper disappears into their own shop.
+    // The base values the settings sliders and the quality ladder scale. They
+    // live here so the numbers are not copied into three call sites, which is
+    // how they drifted apart in the first place.
+    bloomBase: 0.30, grainBase: 0.024, caBase: 0.0022,
+    emisBoost: 0.78,
+    bloomAmt: 0.30, bloomThreshold: 1.06, bloomRadius: 1.2,
     heatAmt: 0.0,
-    exposure: 1.06, vignette: 0.48, grain: 0.030, ca: 0.0045, sat: 1.06,
+    exposure: 1.06, vignette: 0.44, grain: 0.024, ca: 0.0022, sat: 1.04,
     lift: [0.006, 0.004, 0.012], gain: [1.03, 1.0, 1.02],
     flash: 0, flashCol: [1, 1, 1], fade: 1,
     heightScale: 14,

@@ -69,7 +69,7 @@
             const s = (0.5 - k * 0.11) * (1 + Math.sin(t * 1.7) * 0.14);
             Bt.push(A.get('blob'), p.x + Math.sin(t * 0.9) * 1.6, fy,
               { scale: s * 0.92, tint: F.Col.tint(k === 0 ? '#ff7a1e' : k === 1 ? '#ffab44' : '#ffd88a'),
-                emis: 2.0, alpha: 0.92 - k * 0.1, height: 0 });
+                emis: 1.35, alpha: 0.92 - k * 0.1, height: 0 });
           }
         } });
         continue;
@@ -77,7 +77,7 @@
       if (p.kind === 'ladder') { sorted.push({ y: p.y, sprite: 'ladder', x: p.x, opt: { height: 0.8 } }); continue; }
       if (p.kind === 'shaft') { sorted.push({ y: p.y + 6, sprite: 'shaft', x: p.x, opt: { height: 0.2 } }); continue; }
       if (p.kind === 'lantern_post') {
-        sorted.push({ y: p.y, sprite: 'lantern_post', x: p.x, opt: { emis: 1.6 } });
+        sorted.push({ y: p.y, sprite: 'lantern_post', x: p.x, opt: { emis: 1.1 } });
         F.Render.light({ x: p.x, y: p.y - 26, r: 150, col: [1.0, 0.76, 0.42], intensity: 2.6, z: 22, shadow: 1, spec: 1 });
         continue;
       }
@@ -107,7 +107,7 @@
             const t2 = time * (4.5 + k) + p.phase;
             Bt.push(A.get('blob'), p.x + Math.sin(t2 * 0.9) * 2.4, p.y - 30 - k * 4.5 + Math.sin(t2) * 2,
               { scale: 0.78 - k * 0.14, tint: F.Col.tint(k === 0 ? '#ff7a1e' : k === 1 ? '#ffab44' : '#ffd88a'),
-                emis: 2.0, alpha: 0.9 - k * 0.12, height: 0 });
+                emis: 1.35, alpha: 0.9 - k * 0.12, height: 0 });
           }
         } });
         continue;
@@ -156,7 +156,7 @@
         n.rig.drawOutlined({ tints, height: 1 }, 1.05);
         // a soft mote of their trade colour, so you can find them across the hall
         Bt.push(A.get('blob'), n.x, n.y - 58 + Math.sin(time * 2 + n.seed) * 2.5,
-          { scale: 0.45, tint: F.Col.tint(n.col), emis: 2.4, alpha: 0.8, height: 0 });
+          { scale: 0.45, tint: F.Col.tint(n.col), emis: 1.5, alpha: 0.8, height: 0 });
       } });
       F.Render.light({ x: n.x, y: n.y - 30, r: 90, col: F.Col.lin(n.col, 1), intensity: 0.9, z: 16, shadow: 0, spec: 0.4 });
     }

@@ -29,8 +29,8 @@
       F.Render.shadowSteps = st.shadows ? L.shadows : 0;
       F.Render.hazeScale = L.haze;
       F.Render.bloomScale = L.bloom;
-      F.Render.grain = 0.030 * st.grain * L.grain;
-      F.Render.ca = 0.0045 * L.ca;
+      F.Render.grain = F.Render.grainBase * st.grain * L.grain;
+      F.Render.ca = F.Render.caBase * L.ca;
       // the world buffer keeps its size in world units; only its pixel count moves
       if (F.Render.resize) F.Render.resize(Math.round(F.VW * L.res / 2) * 2, Math.round(F.VH * L.res / 2) * 2);
     },

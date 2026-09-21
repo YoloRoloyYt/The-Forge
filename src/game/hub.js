@@ -102,7 +102,7 @@
       for (let i = 0; i < 26; i++) {
         if (x > 1 && y > 1 && x < W - 2 && y < H - 2 && t[y * W + x] === T.WALL) {
           t[y * W + x] = T.LIQUID;
-          if (i % 5 === 0) lv.lights.push({ x: x * TS + 16, y: y * TS + 16, r: 140, col: [1.0, 0.36, 0.10], i: 1.3, z: 8, flicker: 0.3, shadow: 0.3 });
+          if (i % 5 === 0) lv.lights.push({ x: x * TS + 16, y: y * TS + 16, r: 140, col: [1.0, 0.36, 0.10], i: 0.80, z: 8, flicker: 0.3, shadow: 0.3 });
         }
         x += Math.sign(s[2] - x) * (Math.random() < 0.6 ? 1 : 0);
         y += Math.sign(s[3] - y) * (Math.random() < 0.6 ? 1 : 0);
@@ -123,10 +123,10 @@
       const x = CX * TS + 16 + Math.cos(a) * 11.2 * TS, y = CY * TS + 16 + Math.sin(a) * 10.4 * TS;
       if (lv.t(Math.floor(x / TS), Math.floor(y / TS)) !== T.FLOOR) continue;
       lv.props.push({ kind: 'brazier', x, y, r: 8, solid: true, phase: Math.random() * 7 });
-      lv.lights.push({ x, y: y - 16, r: 220, col: [1.0, 0.62, 0.28], i: 3.2, z: 30, flicker: 0.4, shadow: 1 });
+      lv.lights.push({ x, y: y - 16, r: 220, col: [1.0, 0.62, 0.28], i: 1.70, z: 30, flicker: 0.4, shadow: 1 });
     }
     // the forge's own light
-    lv.lights.push({ x: CX * TS + 16, y: CY * TS + 6, r: 300, col: [1.0, 0.50, 0.20], i: 3.0, z: 34, flicker: 0.20, shadow: 0.35 });
+    lv.lights.push({ x: CX * TS + 16, y: CY * TS + 6, r: 300, col: [1.0, 0.50, 0.20], i: 1.65, z: 34, flicker: 0.20, shadow: 0.35 });
 
     // ---- room interiors and shopkeepers
     lv.npcs = [];
@@ -143,7 +143,7 @@
       // plaque over the doorway
       const sx = R.doorX, sy = R.doorY + (R.door === 'S' ? 30 : R.door === 'N' ? -34 : 0);
       lv.props.push({ kind: 'plaque', x: sx, y: sy, r: 0, solid: false, title: R.title, col: R.col });
-      lv.lights.push({ x: sx, y: sy - 14, r: 120, col: R.light, i: 1.5, z: 20, shadow: 0 });
+      lv.lights.push({ x: sx, y: sy - 14, r: 120, col: R.light, i: 0.90, z: 20, shadow: 0 });
 
       // the trade's fittings, spread along the back wall
       const back = (R.cy - R.h + 1) * TS + 30;
@@ -153,10 +153,10 @@
         const fx = R.cx * TS + 16 + (t - 0.5) * span;
         const fy = back + ((i % 2) ? 6 : 0);
         lv.props.push({ kind, x: fx, y: fy, r: 10, solid: true, v: (Math.random() * 3) | 0 });
-        if (kind === 'cauldron') lv.lights.push({ x: fx, y: fy - 22, r: 130, col: [0.35, 1.0, 0.6], i: 2.0, z: 16, flicker: 0.2, shadow: 0.3 });
-        if (kind === 'pedestal') lv.lights.push({ x: fx, y: fy - 34, r: 140, col: [0.62, 0.32, 1.0], i: 2.4, z: 22, flicker: 0.14, shadow: 0.3 });
-        if (kind === 'trough') lv.lights.push({ x: fx, y: fy - 8, r: 90, col: [0.30, 0.70, 0.90], i: 1.0, z: 8, shadow: 0 });
-        if (kind === 'shrinestone') lv.lights.push({ x: fx, y: fy - 44, r: 190, col: [0.48, 0.92, 1.0], i: 2.8, z: 26, flicker: 0.1, shadow: 0.4 });
+        if (kind === 'cauldron') lv.lights.push({ x: fx, y: fy - 22, r: 130, col: [0.35, 1.0, 0.6], i: 1.15, z: 16, flicker: 0.2, shadow: 0.3 });
+        if (kind === 'pedestal') lv.lights.push({ x: fx, y: fy - 34, r: 140, col: [0.62, 0.32, 1.0], i: 1.35, z: 22, flicker: 0.14, shadow: 0.3 });
+        if (kind === 'trough') lv.lights.push({ x: fx, y: fy - 8, r: 90, col: [0.30, 0.70, 0.90], i: 0.65, z: 8, shadow: 0 });
+        if (kind === 'shrinestone') lv.lights.push({ x: fx, y: fy - 44, r: 190, col: [0.48, 0.92, 1.0], i: 1.55, z: 26, flicker: 0.1, shadow: 0.4 });
       });
 
       // lamps at the front corners, torches on the side walls, and a soft fill
@@ -164,18 +164,18 @@
       for (const sgn of [-1, 1]) {
         const lx = (R.cx + sgn * (R.w - 1)) * TS + 16, ly = (R.cy + R.h - 1) * TS + 16;
         lv.props.push({ kind: 'lantern_post', x: lx, y: ly, r: 6, solid: false });
-        lv.lights.push({ x: lx, y: ly - 26, r: 270, col: [1.0, 0.80, 0.48], i: 4.0, z: 26, shadow: 1 });
+        lv.lights.push({ x: lx, y: ly - 26, r: 270, col: [1.0, 0.80, 0.48], i: 2.10, z: 26, shadow: 1 });
         const tx = (R.cx + sgn * R.w) * TS + 16 - sgn * 10, ty = R.cy * TS + 20;
         lv.props.push({ kind: 'torch', x: tx, y: ty, r: 5, solid: false, phase: Math.random() * 7 });
-        lv.lights.push({ x: tx, y: ty - 12, r: 250, col: [1.0, 0.66, 0.34], i: 3.8, z: 28, flicker: 0.45, shadow: 1 });
+        lv.lights.push({ x: tx, y: ty - 12, r: 250, col: [1.0, 0.66, 0.34], i: 2.00, z: 28, flicker: 0.45, shadow: 1 });
       }
-      lv.lights.push({ x: R.cx * TS + 16, y: (R.cy - 1) * TS + 16, r: 340, col: R.light, i: 1.9, z: 70, flicker: 0.06, shadow: 0 });
+      lv.lights.push({ x: R.cx * TS + 16, y: (R.cy - 1) * TS + 16, r: 340, col: R.light, i: 1.15, z: 70, flicker: 0.06, shadow: 0 });
     });
 
     // the boss gate, east end of the long gallery
     lv.exits.push({ kind: 'bossgate', x: (W - 7) * TS + 16, y: CY * TS + 16, r: 30, label: 'The Deep Gate' });
     lv.props.push({ kind: 'gate', x: (W - 7) * TS + 16, y: CY * TS + 16, r: 0, solid: false });
-    lv.lights.push({ x: (W - 7) * TS + 16, y: CY * TS + 4, r: 200, col: [0.55, 0.30, 1.0], i: 2.6, z: 20, flicker: 0.16, shadow: 0.6 });
+    lv.lights.push({ x: (W - 7) * TS + 16, y: CY * TS + 4, r: 200, col: [0.55, 0.30, 1.0], i: 1.45, z: 20, flicker: 0.16, shadow: 0.6 });
 
     // scattered dressing
     for (let i = 0; i < 40; i++) {

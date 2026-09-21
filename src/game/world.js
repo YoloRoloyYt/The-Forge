@@ -37,7 +37,7 @@
       F.Render.grade(Object.assign({ ambient: B.ambient, ambientSky: B.ambientSky }, B.grade));
       // the rim every character picks up from the air of this depth
       F.RIM = { col: F.Col.mix(B.fogCol, '#ffffff', 0.80), dx: -1.3, dy: -2.0, amt: 0.85, emis: 1.0 };
-      F.Render.bloomAmt = 0.58 * F.Game.settings.bloom;
+      F.Render.bloomAmt = F.Render.bloomBase * F.Game.settings.bloom;
       if (F.Quality) F.Quality.apply();
       F.Particles.clear();
       this.snapCamera();

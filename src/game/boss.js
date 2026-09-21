@@ -44,11 +44,11 @@
       if (lv.t(Math.floor(x / TS), Math.floor(y / TS)) !== F.T.FLOOR) continue;
       lv.props.push({ kind: 'brazier', x, y, r: 8, solid: true, phase: Math.random() * 7 });
       // braziers stay firelight; the boss supplies its own colour
-      lv.lights.push({ x, y: y - 16, r: 250, col: [1.0, 0.64, 0.30], i: 2.8, z: 30, flicker: 0.4, shadow: 1 });
+      lv.lights.push({ x, y: y - 16, r: 250, col: [1.0, 0.64, 0.30], i: 1.70, z: 30, flicker: 0.4, shadow: 1 });
     }
     // The stage itself. The braziers only reach the rim, so without this the
     // middle of the arena — where the whole fight happens — was unlit.
-    lv.lights.push({ x: cx * TS, y: cy * TS, r: 700, col: F.Col.lin(F.Col.mix(B.col, '#ffffff', 0.55), 1), i: 1.45, z: 110, flicker: 0.08, shadow: 0 });
+    lv.lights.push({ x: cx * TS, y: cy * TS, r: 700, col: F.Col.lin(F.Col.mix(B.col, '#ffffff', 0.55), 1), i: 1.15, z: 110, flicker: 0.08, shadow: 0 });
     lv.decals.push({ sprite: 'arena_sigil', x: cx * TS, y: cy * TS, rot: 0, alpha: 0.5,
       scale: (W - 7) * TS / 448, tint: F.Col.tint(F.Col.mix(B.glow, '#ffffff', 0.25)) });
     // Arenas are lit stages. A boss you cannot read is not a fight, it is a

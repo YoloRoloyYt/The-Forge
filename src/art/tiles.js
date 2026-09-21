@@ -198,17 +198,34 @@
   function paveLayout() {
     if (PAVE) return PAVE;
     const R = F.rng(88123), out = [];
+    // Four courses is what closes on 64px, but courses of equal-height stones
+    // in a running bond is brickwork, not flagstone — and a floor that reads as
+    // a wall is worse than the tiled grid this replaced. So a stone may take the
+    // whole course height or be split into two stacked halves, and the widths
+    // run from a cobble to a long slab.
     const heights = [12, 16, 14, 12];         // + 2px mortar each = 56 + 8 = 64
     let y = 0;
     heights.forEach((h, row) => {
-      // widths for one course, then stretched so the course closes on itself
       const w = [];
       let total = 0;
-      while (total < PAVE_W - 16) { const q = 12 + Math.floor(R() * 30); w.push(q); total += q + 2; }
+      while (total < PAVE_W - 16) {
+        const q = 9 + Math.floor(R() * R() * 44);
+        w.push(Math.max(9, q)); total += q + 2;
+      }
       const slack = PAVE_W - total;
       w[w.length - 1] += slack;
       let x = -Math.floor(R() * 26);          // stagger the course
-      for (const q of w) { out.push([x, y, q, h, R(), R(), R()]); x += q + 2; }
+      for (const q of w) {
+        if (q > 20 && R() < 0.34) {
+          // split it: two stones stacked, so the course line breaks up
+          const top = Math.round(h * (0.38 + R() * 0.24));
+          out.push([x, y, q, top, R(), R(), R()]);
+          out.push([x, y + top + 2, q, h - top - 2, R(), R(), R()]);
+        } else {
+          out.push([x, y, q, h, R(), R(), R()]);
+        }
+        x += q + 2;
+      }
       y += h + 2;
     });
     PAVE = out;
@@ -232,9 +249,10 @@
         P.rounded(x + 0.5, y + 0.5, sw - 1, sh - 1, 1.5,
           F.Col.shade(stone, (sunk ? 0.62 : 0.80) + k * 0.42));
         // lit top edge, shaded bottom — makes each slab read as a block
-        P.a.save(); P.a.globalAlpha = sunk ? 0.14 : 0.28;
-        P.a.fillStyle = '#ffffff'; P.a.fillRect(x + 1.5, y + 1, sw - 3, 1.4);
-        P.a.fillStyle = '#000000'; P.a.fillRect(x + 1.5, y + sh - 2.4, sw - 3, 1.6);
+        P.a.save(); P.a.globalAlpha = sunk ? 0.07 : 0.14;
+        P.a.fillStyle = '#ffffff'; P.a.fillRect(x + 1.5, y + 1, sw - 3, 1.2);
+        P.a.globalAlpha = sunk ? 0.10 : 0.18;
+        P.a.fillStyle = '#000000'; P.a.fillRect(x + 1.5, y + sh - 2.2, sw - 3, 1.4);
         P.a.restore();
         // a few slabs are split clean through
         if (k3 > 0.86) {
