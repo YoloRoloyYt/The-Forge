@@ -15,7 +15,12 @@ mine the rock  →  melt what you found  →  forge it badly or brilliantly  →
 ## Play
 
 Open `index.html` in Chrome, Edge or Firefox. No install, no server, no dependencies.
-To put it online, upload the folder to any static host (itch.io HTML5, GitHub Pages, Netlify).
+
+**Online:** `.github/workflows/pages.yml` publishes the repository to GitHub Pages on every
+push, which serves it at **https://yoloroloyyt.github.io/The-Forge/**. The workflow does
+nothing until Pages is switched on under *Settings → Pages → Build and deployment →
+Source: GitHub Actions*, and a Pages site is only reachable by everyone once the repository
+itself is public — on a free plan Pages needs a public repository at all.
 
 **Requires WebGL2.** Every browser since 2021 has it.
 

@@ -1,0 +1,55 @@
+# Publish the game to GitHub Pages.
+#
+# The game is plain files — no build step — so this only stages the directories
+# the site actually needs and hands them to Pages. It runs on whichever of the
+# two branches was pushed last, so the live site follows whatever you pushed
+# most recently; once the development branch is merged, main is the only one
+# that will fire.
+#
+# This does nothing until Pages is switched on for the repository:
+# Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
+name: Pages
+
+on:
+  push:
+    branches:
+      - main
+      - claude/forge-2-development-f46z15
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push supersedes one still queued.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage the site
+        run: |
+          mkdir -p _site
+          cp index.html tests.html _site/
+          cp -r src forge1 tools _site/
+          # Pages runs Jekyll over a plain directory otherwise, which would drop
+          # anything starting with an underscore.
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
