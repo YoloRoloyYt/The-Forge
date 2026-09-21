@@ -178,7 +178,7 @@
   const BOSSES = F.BOSSES = {
     grove: {
       id: 'grove', n: 'The Ancient Grove Guardian', sub: 'Warden of the First Cut',
-      biome: 'greenwood', hp: 2600, dmg: 26, spd: 26, r: 26, power: 620, lvl: 10,
+      biome: 'greenwood', hp: 2600, dmg: 26, spd: 26, r: 32, power: 620, lvl: 10,
       xp: 1400, gold: [700, 1100], after: 2,
       col: '#6d5a3c', col2: '#3a3124', glow: '#9ce04a',
       moves: ['slam', 'thorns', 'summon', 'sweep'],
@@ -186,7 +186,7 @@
     },
     leviath: {
       id: 'leviath', n: 'The Tidewrought Leviathan', sub: 'It drank the gallery dry',
-      biome: 'drowned', hp: 5200, dmg: 38, spd: 30, r: 30, power: 1500, lvl: 15,
+      biome: 'drowned', hp: 5200, dmg: 38, spd: 30, r: 37, power: 1500, lvl: 15,
       xp: 3400, gold: [1600, 2400], after: 3,
       col: '#3f6f86', col2: '#17313f', glow: '#5fe0ff',
       moves: ['slam', 'wave', 'summon', 'whirl'],
@@ -194,7 +194,7 @@
     },
     infernal: {
       id: 'infernal', n: 'The Infernal King', sub: 'Crowned in slag',
-      biome: 'magma', hp: 9800, dmg: 54, spd: 34, r: 30, power: 3400, lvl: 21,
+      biome: 'magma', hp: 9800, dmg: 54, spd: 34, r: 37, power: 3400, lvl: 21,
       xp: 7600, gold: [3600, 5200], after: 4,
       col: '#4e2c1e', col2: '#23110b', glow: '#ff7a20',
       moves: ['slam', 'firewall', 'meteor', 'charge'],
@@ -202,7 +202,7 @@
     },
     prism: {
       id: 'prism', n: 'The Prism Warden', sub: 'Every facet is watching',
-      biome: 'crystal', hp: 17500, dmg: 72, spd: 40, r: 28, power: 6800, lvl: 27,
+      biome: 'crystal', hp: 17500, dmg: 72, spd: 40, r: 34, power: 6800, lvl: 27,
       xp: 15000, gold: [7000, 10000], after: 5,
       col: '#8f86c4', col2: '#413a68', glow: '#cdb4ff',
       moves: ['beam', 'shards', 'mirror', 'nova'],
@@ -210,7 +210,7 @@
     },
     sovereign_bone: {
       id: 'sovereign_bone', n: 'The Bone Sovereign', sub: 'Quarried from the fallen',
-      biome: 'bone', hp: 31000, dmg: 96, spd: 38, r: 32, power: 12500, lvl: 33,
+      biome: 'bone', hp: 31000, dmg: 96, spd: 38, r: 39, power: 12500, lvl: 33,
       xp: 30000, gold: [14000, 20000], after: 6,
       col: '#b8ae90', col2: '#5e5645', glow: '#b8ff8a',
       moves: ['slam', 'bonestorm', 'summon', 'grave'],
@@ -218,7 +218,7 @@
     },
     voidlord: {
       id: 'voidlord', n: 'The Void Sovereign', sub: 'The rift wears a shape for you',
-      biome: 'void', hp: 56000, dmg: 128, spd: 46, r: 30, power: 22000, lvl: 38,
+      biome: 'void', hp: 56000, dmg: 128, spd: 46, r: 37, power: 22000, lvl: 38,
       xp: 62000, gold: [28000, 40000], after: 7,
       col: '#42306a', col2: '#1c1030', glow: '#cf5bff',
       moves: ['blinkstrike', 'riftlines', 'shards', 'collapse'],
@@ -226,7 +226,7 @@
     },
     firstforger: {
       id: 'firstforger', n: 'The First Forger', sub: 'As a child, he yearned for the mines',
-      biome: 'eternal', hp: 110000, dmg: 170, spd: 44, r: 34, power: 40000, lvl: 44,
+      biome: 'eternal', hp: 110000, dmg: 170, spd: 44, r: 42, power: 40000, lvl: 44,
       xp: 150000, gold: [70000, 100000], after: 8, final: true,
       col: '#5c4526', col2: '#2b1f12', glow: '#ffc447',
       moves: ['slam', 'firewall', 'meteor', 'nova', 'summon'],

@@ -46,7 +46,11 @@
       // braziers stay firelight; the boss supplies its own colour
       lv.lights.push({ x, y: y - 16, r: 250, col: [1.0, 0.64, 0.30], i: 2.8, z: 30, flicker: 0.4, shadow: 1 });
     }
-    lv.lights.push({ x: cx * TS, y: cy * TS, r: 460, col: F.Col.lin(F.Col.mix(B.col, '#ffffff', 0.4), 1), i: 0.42, z: 80, flicker: 0.1, shadow: 0 });
+    // The stage itself. The braziers only reach the rim, so without this the
+    // middle of the arena — where the whole fight happens — was unlit.
+    lv.lights.push({ x: cx * TS, y: cy * TS, r: 700, col: F.Col.lin(F.Col.mix(B.col, '#ffffff', 0.55), 1), i: 1.45, z: 110, flicker: 0.08, shadow: 0 });
+    lv.decals.push({ sprite: 'arena_sigil', x: cx * TS, y: cy * TS, rot: 0, alpha: 0.5,
+      scale: (W - 7) * TS / 448, tint: F.Col.tint(F.Col.mix(B.glow, '#ffffff', 0.25)) });
     // Arenas are lit stages. A boss you cannot read is not a fight, it is a
     // guessing game, so the ambient here is several times the mine's.
     lv.arenaGrade = {
@@ -99,7 +103,7 @@
       R.byName.legBU.x = -16; R.byName.legFU.x = 16;
       R.byName.legBL.y = 30;  R.byName.legFL.y = 30;
       R.byName.footB.y = 28;  R.byName.footF.y = 28;
-      this.headroom = 248 * this.scale;   // how far the silhouette rises above its feet
+      this.headroom = 300 * this.scale;   // body + crown, so the camera never crops the horns   // how far the silhouette rises above its feet
       this.enrage = 1;
       this.noHit = true;
       this.tints = null;
@@ -510,9 +514,10 @@
         this.tints.head = mid;
         this.tints.helm = acc;
         this.tints.hair = acc;
+        this.tints.chest = acc;
       }
       rig.sprite('torso', 'bs_body_' + id);
-      rig.sprite('chest', null);
+      rig.sprite('chest', 'bs_core_' + id);
       rig.sprite('head', 'bs_head_' + id);
       rig.sprite('helm', 'bs_crown_' + id);
       rig.sprite('hair', 'bs_eyes_' + id); rig.sprite('beard', null);
