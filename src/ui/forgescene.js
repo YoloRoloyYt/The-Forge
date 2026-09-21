@@ -1072,17 +1072,46 @@
       U.panel(cxx, cyy, cw, chh, { frame: gradeCol });
       const ic = F.ItemIcon(it);
       if (ic) {
+        const iw = 150, ih = iw * (ic.height / ic.width);
+        const ix = cxx + 20, iy = cyy + (chh - ih) / 2;
+        // a plinth and a halo in the ore's own colour: this is the payoff for
+        // the whole run, and a small flat sprite on a panel does not say so
+        g.save();
+        g.beginPath(); U.roundRect(cxx + 3, cyy + 3, cw - 6, chh - 6, 8); g.clip();
+        g.globalCompositeOperation = 'lighter';
+        // rays, turning slowly. They taper to a point and stay faint; a hard
+        // wedge at full width is a sunburst sticker, not light.
+        g.translate(ix + iw / 2, iy + ih / 2);
+        g.rotate(this.t * 0.11);
+        for (let i = 0; i < 12; i++) {
+          g.rotate(6.2832 / 12);
+          const len = 88 + (i % 3) * 26;
+          const rg = g.createLinearGradient(0, 0, len, 0);
+          rg.addColorStop(0, F.Col.rgba(it.color, 0.16 * k));
+          rg.addColorStop(1, F.Col.rgba(it.color, 0));
+          g.fillStyle = rg;
+          g.beginPath(); g.moveTo(6, -9); g.lineTo(len, 0); g.lineTo(6, 9);
+          g.closePath(); g.fill();
+        }
+        g.rotate(-this.t * 0.11);
+        const hg = g.createRadialGradient(0, 0, 4, 0, 0, 104);
+        hg.addColorStop(0, F.Col.rgba(F.Col.mix(it.color, '#ffffff', 0.4), 0.30 * k));
+        hg.addColorStop(0.5, F.Col.rgba(it.color, 0.09 * k));
+        hg.addColorStop(1, F.Col.rgba(it.color, 0));
+        g.fillStyle = hg;
+        g.beginPath(); g.arc(0, 0, 104, 0, 7); g.fill();
+        g.restore();
         g.save(); g.imageSmoothingEnabled = false;
         g.shadowColor = it.color; g.shadowBlur = 26;
-        g.drawImage(ic, cxx + 24, cyy + 20, 130, 130 * (ic.height / ic.width));
+        g.drawImage(ic, ix, iy, iw, ih);
         g.restore();
       }
-      U.text(it.name, cxx + 180, cyy + 46, { size: 21, weight: '700', display: true, col: it.color });
-      U.text(F.Forge.describe(it), cxx + 180, cyy + 76, { size: 15, col: P.text });
+      U.text(it.name, cxx + 196, cyy + 46, { size: 21, weight: '700', display: true, col: it.color });
+      U.text(F.Forge.describe(it), cxx + 196, cyy + 76, { size: 15, col: P.text });
       let ty = cyy + 104;
       for (const tr of it.traits) {
         const T = F.TRAITS[tr.id];
-        U.chip(cxx + 180, ty, T.n, T.col);
+        U.chip(cxx + 196, ty, T.n, T.col);
         ty += 26;
       }
       U.text('Sells for ' + F.U.fmt(it.value) + ' gold', cxx + cw - 24, cyy + chh - 20,

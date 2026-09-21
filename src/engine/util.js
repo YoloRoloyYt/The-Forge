@@ -73,6 +73,8 @@
       return C.hex(U.lerp(x[0], y[0], t), U.lerp(x[1], y[1], t), U.lerp(x[2], y[2], t));
     },
     /** Shift a colour toward a hue without washing it out. */
+    /** '#rrggbb' + alpha as a CSS rgba() string, for Canvas2D gradients. */
+    rgba(c, a) { const p = C.parse(c); return 'rgba(' + p[0] + ',' + p[1] + ',' + p[2] + ',' + a + ')'; },
     warm(c, t) { return C.mix(c, '#ff9a3c', t); },
     cool(c, t) { return C.mix(c, '#4a7cff', t); },
     /** Pack '#rrggbb' + alpha into the ABGR uint the batcher wants. */
