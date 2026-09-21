@@ -16,11 +16,16 @@ mine the rock  →  melt what you found  →  forge it badly or brilliantly  →
 
 Open `index.html` in Chrome, Edge or Firefox. No install, no server, no dependencies.
 
-**Online:** `.github/workflows/pages.yml` publishes the repository to GitHub Pages on every
-push, which serves it at **https://yoloroloyyt.github.io/The-Forge/**. The workflow does
-nothing until Pages is switched on under *Settings → Pages → Build and deployment →
-Source: GitHub Actions*, and a Pages site is only reachable by everyone once the repository
-itself is public — on a free plan Pages needs a public repository at all.
+**Online:** `.github/workflows/pages.yml` publishes the repository to GitHub Pages, which
+serves it at **https://yoloroloyyt.github.io/The-Forge/**. Two things have to be true first:
+
+1. the repository is public — a Pages site is only reachable by everyone if it is, and on a
+   free plan Pages needs a public repository at all;
+2. Pages is switched on under *Settings → Pages → Build and deployment →
+   Source: GitHub Actions*.
+
+Then run **Pages** once from the Actions tab (it deploys whichever branch you pick), and
+after that every push to `main` redeploys on its own.
 
 **Requires WebGL2.** Every browser since 2021 has it.
 

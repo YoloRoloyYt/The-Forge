@@ -1,20 +1,21 @@
 # Publish the game to GitHub Pages.
 #
 # The game is plain files — no build step — so this only stages the directories
-# the site actually needs and hands them to Pages. It runs on whichever of the
-# two branches was pushed last, so the live site follows whatever you pushed
-# most recently; once the development branch is merged, main is the only one
-# that will fire.
+# the site actually needs and hands them to Pages.
 #
-# This does nothing until Pages is switched on for the repository:
+# Nothing here works until Pages is switched on for the repository:
 # Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
+# Until then actions/configure-pages fails, which is why this does not fire on
+# every branch push: a workflow that cannot succeed yet should not sit red on
+# an open pull request. Run it by hand from the Actions tab (it will deploy
+# whichever branch you pick) and it takes over automatically once main carries
+# the game.
 name: Pages
 
 on:
   push:
     branches:
       - main
-      - claude/forge-2-development-f46z15
   workflow_dispatch:
 
 permissions:
