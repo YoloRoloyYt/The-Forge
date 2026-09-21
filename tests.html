@@ -1,21 +1,349 @@
-<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>The Forge tests</title></head>
-<body style="background:#111;color:#ddd;font:12px monospace">
-<canvas id="game" style="display:none"></canvas>
-<pre id="out">running...</pre>
-<script>window.__FORGE_TEST__ = true;</script>
-<script src="js/core.js"></script>
-<script src="js/font.js"></script><script src="js/data.js"></script>
-<script src="js/extras.js"></script>
-<script src="js/forgelogic.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/entities.js"></script>
-<script src="js/world.js"></script>
-<script src="js/boss.js"></script>
-<script src="js/forge.js"></script>
-<script src="js/menus.js"></script>
-<script src="js/menus2.js"></script>
-<script src="js/touch.js"></script>
-<script src="js/main.js"></script>
-<script src="js/tests.js"></script>
-</body></html>
+<!doctype html>
+<html><head><meta charset="utf-8"><title>The Forge II — tests</title>
+<style>
+ body { background:#0b0910; color:#d8d0c6; font:14px/1.6 "DejaVu Sans Mono",monospace; margin:0; padding:26px; }
+ h1 { font:700 26px Georgia,serif; color:#f0cb7e; margin:0 0 4px; }
+ .sub { color:#6b6070; margin-bottom:20px; }
+ .ok { color:#6ee787; } .bad { color:#ff5f6d; } .warn { color:#ffc857; }
+ .grp { margin:16px 0 6px; color:#c79a4e; font-weight:700; border-bottom:1px solid #2a2434; padding-bottom:3px;}
+ #sum { margin-top:24px; padding:14px 18px; border-radius:8px; font-size:18px; font-weight:700; display:inline-block;}
+ table { border-collapse:collapse; margin:8px 0; } td { padding:1px 14px 1px 0; }
+</style></head>
+<body>
+<h1>The Forge II</h1>
+<div class="sub">Logic tests. No canvas, no WebGL — just the maths the game hangs off.</div>
+<div id="out"></div>
+<div id="sum"></div>
+
+<script src="src/engine/util.js"></script>
+<script src="src/art/palette.js"></script>
+<script src="src/game/data.js"></script>
+<script src="src/game/forge.js"></script>
+<script src="src/art/bossart.js"></script>
+<script>
+(function () {
+  const F = window.F2;
+  const out = document.getElementById('out');
+  let pass = 0, fail = 0;
+
+  function grp(n) { const d = document.createElement('div'); d.className = 'grp'; d.textContent = n; out.appendChild(d); }
+  function t(name, fn) {
+    let ok = false, why = '';
+    try { const r = fn(); ok = r === undefined || r === true; if (!ok) why = String(r); }
+    catch (e) { ok = false; why = e.message; }
+    const d = document.createElement('div');
+    d.className = ok ? 'ok' : 'bad';
+    d.textContent = (ok ? '  PASS  ' : '  FAIL  ') + name + (ok ? '' : '   — ' + why);
+    out.appendChild(d);
+    ok ? pass++ : fail++;
+  }
+  const eq = (a, b, m) => a === b ? true : (m || '') + ' expected ' + b + ', got ' + a;
+  const near = (a, b, tol, m) => Math.abs(a - b) <= (tol || 0.001) ? true : (m || '') + ' expected ~' + b + ', got ' + a;
+  const gt = (a, b, m) => a > b ? true : (m || '') + ' expected > ' + b + ', got ' + a;
+  const lt = (a, b, m) => a < b ? true : (m || '') + ' expected < ' + b + ', got ' + a;
+
+  // ---------------------------------------------------------------- tables
+  grp('Content tables');
+  t('every ore has a sane definition', () => {
+    for (const id of F.ORE_IDS) {
+      const o = F.ORES[id];
+      if (!o.n || !o.role || !o.col || !o.col2) return id + ' incomplete';
+      if (!(o.mult > 0) || !(o.val > 0)) return id + ' bad numbers';
+      if (o.f[0] < 1 || o.f[1] > F.MAX_DEPTH || o.f[0] > o.f[1]) return id + ' bad depth range';
+      if (o.role === 'trait' && !F.TRAITS[o.trait]) return id + ' trait missing';
+    }
+  });
+  t('every depth is reachable and has mobs', () => {
+    for (const D of F.DEPTHS) {
+      if (!F.BIOMES[D.biome]) return D.name + ' has no biome';
+      if (!D.mobs.length || !D.elites.length) return D.name + ' has no mobs';
+      for (const m of D.mobs.concat(D.elites)) if (!F.ENEMIES[m]) return D.name + ' unknown mob ' + m;
+      if (D.boss && !F.BOSSES[D.boss]) return D.name + ' unknown boss';
+    }
+  });
+  t('every depth has at least four ores available', () => {
+    for (let d = 1; d <= F.MAX_DEPTH; d++) {
+      const n = F.ORE_IDS.filter(id => d >= F.ORES[id].f[0] && d <= F.ORES[id].f[1]).length;
+      if (n < 4) return 'depth ' + d + ' only has ' + n;
+    }
+  });
+  t('every depth has at least one trait ore from depth 3', () => {
+    for (let d = 3; d <= F.MAX_DEPTH; d++) {
+      const n = F.ORE_IDS.filter(id => F.ORES[id].role === 'trait' && d >= F.ORES[id].f[0] && d <= F.ORES[id].f[1]).length;
+      if (n < 1) return 'depth ' + d + ' has no trait ore';
+    }
+  });
+  t('every boss has art keyed to its own id', () => {
+    const K = F.BossArt && F.BossArt.KINDS;
+    if (!K) return 'BossArt did not load';
+    for (const id of F.BOSS_ORDER) if (!K[id]) return 'no art kind for ' + id;
+    for (const k in K) if (F.BOSS_ORDER.indexOf(k) < 0) return 'art kind ' + k + ' belongs to no boss';
+  });
+  t('boss order matches the depth gates', () => {
+    for (let i = 0; i < F.BOSS_ORDER.length; i++) {
+      const B = F.BOSSES[F.BOSS_ORDER[i]];
+      if (!B) return 'missing ' + F.BOSS_ORDER[i];
+      if (i > 0 && B.after <= F.BOSSES[F.BOSS_ORDER[i - 1]].after) return B.n + ' is not deeper than the one before';
+      if (!B.moves.length) return B.n + ' has no moves';
+    }
+  });
+  t('weapon and armour class thresholds ascend', () => {
+    let last = -1;
+    for (const id of F.CLS_ORDER) { if (F.CLS[id].min <= last) return id + ' out of order'; last = F.CLS[id].min; }
+    last = -1;
+    for (const id of F.ARM_ORDER) { if (F.ARMOR_CLS[id].min <= last) return id + ' out of order'; last = F.ARMOR_CLS[id].min; }
+  });
+  t('pickaxe and lantern ladders ascend in power and price', () => {
+    for (let i = 1; i < F.PICKS.length; i++) {
+      if (F.PICKS[i].mp <= F.PICKS[i - 1].mp) return 'pick ' + i + ' is not stronger';
+      if (F.PICKS[i].cost <= F.PICKS[i - 1].cost) return 'pick ' + i + ' is not dearer';
+    }
+    for (let i = 1; i < F.LANTERNS.length; i++)
+      if (F.LANTERNS[i].r <= F.LANTERNS[i - 1].r) return 'lantern ' + i + ' is not brighter';
+  });
+
+  // ---------------------------------------------------------------- classes
+  grp('Ore count decides the class');
+  t('the smallest legal melt makes the smallest thing', () => eq(F.Forge.weaponClass(3), 'dagger'));
+  t('class boundaries land exactly where the table says', () => {
+    for (const id of F.CLS_ORDER) {
+      const min = F.CLS[id].min;
+      if (F.Forge.weaponClass(min) !== id) return id + ' does not start at ' + min;
+      if (min > 3 && F.Forge.weaponClass(min - 1) === id) return id + ' starts too early';
+    }
+  });
+  t('a huge melt makes a titan maul', () => eq(F.Forge.weaponClass(400), 'maul'));
+  t('armour uses the same ladder', () => {
+    for (const id of F.ARM_ORDER) if (F.Forge.armorClass(F.ARMOR_CLS[id].min) !== id) return id + ' wrong';
+  });
+
+  // ---------------------------------------------------------------- quality
+  grp('Quality');
+  t('quality multiplier is monotonic across the whole range', () => {
+    let last = -1;
+    for (let q = 0; q <= 100; q += 0.5) {
+      const m = F.Forge.qualityMult(q);
+      if (m < last - 1e-9) return 'dips at ' + q;
+      last = m;
+    }
+  });
+  t('a botched item is meaningfully worse than a masterwork', () => {
+    const lo = F.Forge.qualityMult(0), hi = F.Forge.qualityMult(100);
+    return gt(hi / lo, 2.3, 'spread too small:');
+  });
+  t('grades appear in order and cover 0-100', () => {
+    let last = -1;
+    for (const g of F.GRADES) { if (g.min <= last && last >= 0) return g.n + ' out of order'; last = g.min; }
+    if (F.Forge.grade(0) !== 'Botched') return 'zero is not Botched';
+    if (F.Forge.grade(100) !== 'Masterwork') return 'hundred is not Masterwork';
+  });
+  t('masterwork starts at 99', () => F.Forge.isMasterwork(99) && !F.Forge.isMasterwork(98.9) ? true : 'wrong threshold');
+  t('quality is clamped', () => {
+    const a = F.Forge.create({ kind: 'weapon', ores: { iron: 10 }, quality: 500 }, 1);
+    const b = F.Forge.create({ kind: 'weapon', ores: { iron: 10 }, quality: -80 }, 2);
+    return a.quality === 100 && b.quality === 0 ? true : 'not clamped: ' + a.quality + '/' + b.quality;
+  });
+
+  // ----------------------------------------------------------------- traits
+  grp('Traits');
+  t('a trait ore below the threshold grants nothing', () => eq(F.Forge.traits({ iron: 90, magmite: 10 }).length, 0));
+  t('a trait ore at the threshold grants the trait', () => {
+    const tr = F.Forge.traits({ iron: 80, magmite: 20 });
+    return tr.length === 1 && tr[0].id === 'volcanic' ? true : JSON.stringify(tr);
+  });
+  t('trait strength rises with share', () => {
+    const a = F.Forge.traits({ iron: 78, magmite: 22 })[0].s;
+    const b = F.Forge.traits({ iron: 40, magmite: 60 })[0].s;
+    return gt(b, a);
+  });
+  t('at most two traits survive, the two largest', () => {
+    const tr = F.Forge.traits({ magmite: 30, glassite: 28, volatite: 22, demonite: 20 });
+    if (tr.length !== 2) return 'got ' + tr.length;
+    if (tr[0].id !== 'volcanic' || tr[1].id !== 'glass') return 'wrong two: ' + tr.map(x => x.id).join();
+  });
+  t('non-trait ore never grants a trait', () => eq(F.Forge.traits({ stone: 50, iron: 50 }).length, 0));
+
+  // ---------------------------------------------------------------- palette
+  grp('Palette and naming');
+  t('the most plentiful ore gives the colour', () => {
+    const p = F.Forge.palette({ stone: 40, cobalt: 3 });
+    return eq(p.mainId, 'stone');
+  });
+  t('the accent comes from the most valuable other ore', () => {
+    const p = F.Forge.palette({ stone: 40, cobalt: 3, copper: 5 });
+    return eq(p.accentId, 'cobalt');
+  });
+  t('an empty melt still returns a usable palette', () => {
+    const p = F.Forge.palette({});
+    return p.main && p.dark ? true : 'no colours';
+  });
+  t('names carry masterwork, trait, ore and class', () => {
+    const it = F.Forge.create({ kind: 'weapon', ores: { magmite: 30, iron: 10 }, quality: 100 }, 3);
+    if (it.name.indexOf('Masterwork') !== 0) return it.name;
+    if (it.name.indexOf('Volcanic') < 0) return it.name;
+    if (it.name.indexOf('Magmite') < 0) return it.name;
+  });
+
+  // ------------------------------------------------------------------ items
+  grp('Item generation');
+  t('better ore makes a stronger weapon at equal quality and count', () => {
+    const a = F.Forge.create({ kind: 'weapon', ores: { stone: 20 }, quality: 70 }, 4);
+    const b = F.Forge.create({ kind: 'weapon', ores: { cobalt: 20 }, quality: 70 }, 5);
+    return gt(b.stats.dmg, a.stats.dmg * 2);
+  });
+  t('higher quality makes a stronger weapon from the same ore', () => {
+    const a = F.Forge.create({ kind: 'weapon', ores: { iron: 20 }, quality: 30 }, 6);
+    const b = F.Forge.create({ kind: 'weapon', ores: { iron: 20 }, quality: 99 }, 7);
+    return gt(b.stats.dmg / a.stats.dmg, 2.0);
+  });
+  t('a bigger melt makes a bigger weapon', () => {
+    const a = F.Forge.create({ kind: 'weapon', ores: { iron: 5 }, quality: 70 }, 8);
+    const b = F.Forge.create({ kind: 'weapon', ores: { iron: 60 }, quality: 70 }, 9);
+    return gt(b.stats.dmg, a.stats.dmg * 4) && gt(b.stats.cd, a.stats.cd);
+  });
+  t('armour slots scale by their weight factor', () => {
+    const chest = F.Forge.create({ kind: 'armor', slot: 'chest', ores: { iron: 20 }, quality: 70 }, 10);
+    const boots = F.Forge.create({ kind: 'armor', slot: 'boots', ores: { iron: 20 }, quality: 70 }, 11);
+    return gt(chest.stats.def, boots.stats.def * 1.9);
+  });
+  t('every weapon class produces finite stats', () => {
+    for (const id of F.CLS_ORDER) {
+      const it = F.Forge.create({ kind: 'weapon', ores: { iron: F.CLS[id].min }, quality: 70 }, 12);
+      if (it.cls !== id) return id + ' -> ' + it.cls;
+      for (const k in it.stats) if (!isFinite(it.stats[k])) return id + '.' + k + ' is ' + it.stats[k];
+    }
+  });
+  t('every armour class and slot produces finite stats', () => {
+    for (const id of F.ARM_ORDER) for (const slot of F.ARMOR_SLOTS) {
+      const it = F.Forge.create({ kind: 'armor', slot, ores: { iron: F.ARMOR_CLS[id].min }, quality: 70 }, 13);
+      if (it.cls !== id) return id + '/' + slot + ' -> ' + it.cls;
+      for (const k in it.stats) if (!isFinite(it.stats[k])) return id + '.' + k;
+    }
+  });
+  t('preview refuses a melt below the minimum', () => F.Forge.preview('weapon', null, { iron: 2 }, 70) === null ? true : 'previewed anyway');
+  t('preview matches create at the same quality', () => {
+    const a = F.Forge.preview('weapon', null, { iron: 12 }, 70);
+    const b = F.Forge.create({ kind: 'weapon', ores: { iron: 12 }, quality: 70 }, 14);
+    return near(a.stats.dmg, b.stats.dmg, 0.001);
+  });
+
+  // ------------------------------------------------------------------ value
+  grp('Economy');
+  t('sell value rises with quality, steeply', () => {
+    const lo = F.Forge.sellValue({ iron: 20 }, 40);
+    const hi = F.Forge.sellValue({ iron: 20 }, 99);
+    return gt(hi / lo, 3.0, 'ratio ' + (hi / lo).toFixed(2) + ':');
+  });
+  t('forging beats selling the raw ore', () => {
+    for (const ore of ['stone', 'iron', 'cobalt', 'starsteel']) {
+      const raw = F.ORES[ore].val * 20 * 0.62;
+      const forged = F.Forge.sellValue({ [ore]: 20 }, 72);
+      if (forged <= raw * 1.5) return ore + ': forged ' + forged.toFixed(0) + ' vs raw ' + raw.toFixed(0);
+    }
+  });
+  t('enhancement cost grows faster than its benefit', () => {
+    let last = 0;
+    for (let i = 0; i < F.Forge.MAX_ENH; i++) {
+      const c = F.Forge.enhCost(i);
+      if (c.gold <= last) return 'cost dips at ' + i;
+      last = c.gold;
+    }
+    return near(F.Forge.enhMult({ enh: 10 }), 1.85, 0.001);
+  });
+  t('the best ore available gets richer every depth', () => {
+    let last = 0;
+    for (let d = 1; d <= F.MAX_DEPTH; d++) {
+      const here = Math.max.apply(null, F.ORE_IDS
+        .filter(i => d >= F.ORES[i].f[0] && d <= F.ORES[i].f[1])
+        .map(i => F.ORES[i].val));
+      if (here <= last) return 'depth ' + d + ' tops out at ' + here + ', no better than ' + last;
+      last = here;
+    }
+  });
+  t('a full melt of the best ore roughly doubles in value each depth', () => {
+    const best = d => Math.max.apply(null, F.ORE_IDS
+      .filter(i => d >= F.ORES[i].f[0] && d <= F.ORES[i].f[1]).map(i => F.ORES[i].val));
+    for (let d = 2; d <= F.MAX_DEPTH; d++) {
+      const r = best(d) / best(d - 1);
+      if (r < 1.25 || r > 4.2) return 'depth ' + d + ' jumps x' + r.toFixed(2);
+    }
+  });
+
+  // ------------------------------------------------------------ progression
+  grp('Progression curve');
+  t('xp per level always increases', () => {
+    let last = 0;
+    for (let L = 1; L < F.MAX_LEVEL; L++) { const n = F.xpNeeded(L); if (n <= last) return 'dips at ' + L; last = n; }
+  });
+  t('the whole level curve is a reasonable length', () => {
+    let total = 0;
+    for (let L = 1; L < F.MAX_LEVEL; L++) total += F.xpNeeded(L);
+    return total > 800000 && total < 4000000 ? true : 'total xp ' + total;
+  });
+  t('depth gates rise with depth', () => {
+    let last = 0;
+    for (const D of F.DEPTHS) { if (D.gate < last) return D.name + ' gate goes backwards'; last = D.gate; }
+  });
+  t('every depth gate is reachable before max level', () => {
+    for (const D of F.DEPTHS) if (D.gate > F.MAX_LEVEL) return D.name + ' needs level ' + D.gate;
+  });
+  t('node health and mine power stay in step', () => {
+    // a depth-appropriate pickaxe should break a rock in a sane number of swings
+    for (let d = 1; d <= F.MAX_DEPTH; d++) {
+      const hp = F.NODES.rock.hp * F.nodeHpScale(d);
+      const pick = F.PICKS[Math.min(F.PICKS.length - 1, Math.floor((d - 1) * 1.2) + 1)];
+      const swings = hp / pick.mp;
+      if (swings < 1 || swings > 22) return 'depth ' + d + ' takes ' + swings.toFixed(1) + ' swings';
+    }
+  });
+  t('enemy danger rises monotonically', () => {
+    let last = 0;
+    for (const D of F.DEPTHS) { if (D.danger <= last) return D.name + ' is not more dangerous'; last = D.danger; }
+  });
+  t('boss recommended power rises monotonically', () => {
+    let last = 0;
+    for (const id of F.BOSS_ORDER) { const B = F.BOSSES[id]; if (B.power <= last) return B.n + ' is not stronger'; last = B.power; }
+  });
+
+  // --------------------------------------------------------------- utility
+  grp('Utility maths');
+  t('clamp, lerp and saturate behave', () => {
+    if (F.U.clamp(5, 0, 1) !== 1 || F.U.clamp(-5, 0, 1) !== 0) return 'clamp';
+    if (F.U.lerp(0, 10, 0.5) !== 5) return 'lerp';
+    if (F.U.sat(2) !== 1 || F.U.sat(-2) !== 0) return 'sat';
+  });
+  t('angle difference wraps correctly', () => {
+    if (Math.abs(F.U.angDiff(0.1, 6.2)) > 0.3) return 'wrap failed';
+    if (Math.abs(F.U.angDiff(Math.PI - 0.1, -Math.PI + 0.1) - (-0.2)) > 0.001) return 'sign';
+  });
+  t('the seeded rng is reproducible and in range', () => {
+    const a = F.rng(1234), b = F.rng(1234);
+    for (let i = 0; i < 500; i++) {
+      const x = a(), y = b();
+      if (x !== y) return 'not reproducible';
+      if (x < 0 || x >= 1) return 'out of range: ' + x;
+    }
+  });
+  t('weighted pick respects weights', () => {
+    const r = { a: 0, b: 0 };
+    for (let i = 0; i < 6000; i++) r[F.U.wpick([['a', 9], ['b', 1]])]++;
+    return r.a > r.b * 5 ? true : 'a=' + r.a + ' b=' + r.b;
+  });
+  t('colour helpers round-trip', () => {
+    const c = F.Col.hex(255, 128, 0);
+    const p = F.Col.parse(c);
+    if (p[0] !== 255 || p[1] !== 128 || p[2] !== 0) return c + ' -> ' + p;
+    if (F.Col.mix('#000000', '#ffffff', 0.5) !== '#808080') return F.Col.mix('#000000', '#ffffff', 0.5);
+  });
+  t('tint packs to ABGR the batcher expects', () => {
+    const v = F.Col.tint('#ff0000', 1);
+    return eq(v >>> 0, 0xff0000ff);
+  });
+
+  const sum = document.getElementById('sum');
+  sum.textContent = fail === 0 ? 'ALL OK — ' + pass + ' tests' : fail + ' FAILED of ' + (pass + fail);
+  sum.style.background = fail === 0 ? '#12301c' : '#3a1018';
+  sum.style.color = fail === 0 ? '#6ee787' : '#ff5f6d';
+  window.__RESULT = { pass, fail };
+})();
+</script></body></html>

@@ -1,0 +1,82 @@
+<!doctype html><html><head><meta charset="utf-8"><title>render test</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block;image-rendering:auto}</style>
+</head><body>
+<canvas id="gl"></canvas>
+<script src="../src/engine/util.js"></script>
+<script src="../src/engine/gl.js"></script>
+<script src="../src/engine/art.js"></script>
+<script src="../src/engine/batch.js"></script>
+<script src="../src/engine/render.js"></script>
+<script>
+const F = window.F2;
+const VW = 640, VH = 360;
+const cv = document.getElementById('gl');
+cv.width = VW*2; cv.height = VH*2; cv.style.width = (VW*2)+'px'; cv.style.height = (VH*2)+'px';
+F.GL.init(cv); F.GL.dw = cv.width; F.GL.dh = cv.height;
+F.Batch.init(); F.Render.init(VW, VH);
+F.Art.reset();
+
+// --- a stone floor tile, a stone wall tile, a boulder, and a glowing crystal
+const TS = 32;
+F.Art.define('t_floor', TS, TS, (P, r) => {
+  P.mat(0.45, 0.08).rect(0,0,TS,TS,'#3a3540');
+  P.speckle(0,0,TS,TS,['#453f4b','#322d37','#4d4653'], 70, 0.25);
+  for (let i=0;i<4;i++){ P.mat(0.32,0.05); P.crack(r()*TS, r()*TS, 10, '#282430'); }
+  for (let i=0;i<7;i++){ P.mat(0.62,0.2); const x=r()*TS,y=r()*TS; P.dome(x,y,2+r()*2,2+r()*2,'#4f4855',0.4,0.72); }
+}, { tile: true, bump: 1.1 });
+
+F.Art.define('t_wall', TS, TS, (P, r) => {
+  P.mat(0.95, 0.12).rect(0,0,TS,TS,'#57505e');
+  P.speckle(0,0,TS,TS,['#655d6e','#4a4452','#6e6579'], 90, 0.08);
+  for (let i=0;i<5;i++){ P.mat(0.75,0.1); P.crack(r()*TS, r()*TS, 14, '#3a3543'); }
+}, { tile: true, bump: 0.8 });
+
+F.Art.define('boulder', 28, 26, (P, r) => {
+  P.mat(0.5,0.1).dome(14,15,12,10,'#6b6473',0.15,0.9);
+  P.speckle(3,5,22,18,['#7b7383','#5d5666'], 60, 0.2);
+  P.mat(0.85,0.35).dome(10,10,5,4,'#8b8494',0.6,1.0);
+}, { ay: 22 });
+
+F.Art.define('crystal', 24, 30, (P, r) => {
+  P.mat(0.9,0.8).glow('#2a7f9e');
+  P.poly([[12,0],[20,12],[16,29],[8,29],[4,12]], '#7fe9ff');
+  P.glow('#0d3d52').poly([[12,0],[16,12],[12,29],[8,12]], '#bff6ff');
+  P.glow(null);
+}, { ay: 28 });
+
+F.Art.build();
+
+const cam = { x: 0, y: 0, vw: VW, vh: VH };
+// occlusion map: a ring of wall
+const TW = 24, TH = 14;
+const occ = new Uint8Array(TW*TH);
+const tiles = new Uint8Array(TW*TH);
+for (let y=0;y<TH;y++) for (let x=0;x<TW;x++){
+  const wall = (x===0||y===0||x===TW-1||y===TH-1) || (x>8&&x<12&&y>3&&y<10) || (x>16&&x<20&&y>2&&y<6);
+  tiles[y*TW+x] = wall?1:0; occ[y*TW+x] = wall?255:0;
+}
+F.Render.setOcclusion(occ, TW, TH, TS);
+F.Render.grade({ ambient:[0.035,0.04,0.065], ambientSky:[0.06,0.07,0.11], heatAmt:0.0 });
+
+function draw(t) {
+  F.Render.time = t;
+  F.Render.beginFrame(cam);
+  const fFloor = F.Art.get('t_floor'), fWall = F.Art.get('t_wall');
+  for (let y=0;y<TH;y++) for (let x=0;x<TW;x++){
+    const f = tiles[y*TW+x] ? fWall : fFloor;
+    F.Batch.push(f, x*TS, y*TS, { ax:0, ay:0, height: tiles[y*TW+x]?1:0.45 });
+  }
+  F.Batch.push(F.Art.get('boulder'), 200, 250, {});
+  F.Batch.push(F.Art.get('boulder'), 420, 180, { scale: 0.8 });
+  F.Batch.push(F.Art.get('crystal'), 300, 300, { emis: 1.6 });
+  F.Batch.push(F.Art.get('crystal'), 520, 120, { emis: 1.6, scale:1.2 });
+  // lantern
+  F.Render.pointLight(260, 210, 230, [1.0,0.66,0.34], 3.6, 16, 1);
+  F.Render.pointLight(300, 292, 70, [0.28,0.8,1.0], 2.4, 10, 0.4);
+  F.Render.pointLight(520, 112, 80, [0.28,0.8,1.0], 2.4, 10, 0.4);
+  F.Render.pointLight(600, 330, 170, [1.0,0.32,0.08], 3.2, 12, 1);
+  F.Render.endFrame();
+}
+window.__draw = draw;
+draw(0);
+</script></body></html>
