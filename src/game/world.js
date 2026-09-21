@@ -192,10 +192,18 @@
       const O = F.ORES[n.ore] || F.ORES.stone;
       F.Audio.pick(D.hp > 200);
       F.Game.kick(0.8);
-      F.Particles.burst(n.x - Math.cos(angle) * n.r * 0.6, n.y - Math.sin(angle) * n.r * 0.6, 7, {
+      const ix = n.x - Math.cos(angle) * n.r * 0.6, iy = n.y - Math.sin(angle) * n.r * 0.6;
+      F.Particles.burst(ix, iy, 7, {
         sprite: 'spark', col: '#ffe0a0', col1: O.col, size: 3, size1: 0,
         life: 0.32, speed0: 40, speed1: 170, emis: 2.8, drag: 5, grav: 160,
         dir: angle + Math.PI, spread: 1.9,
+      });
+      // One spark carries a light. In a cave lit only by a lantern, the flash
+      // off the pick is most of what makes a strike land.
+      F.Particles.spawn({
+        x: ix, y: iy, vx: 0, vy: 0, life: 0.13,
+        sprite: 'blob', col: F.Col.mix('#ffe0a0', O.glow || O.col, 0.45), size: 5, size1: 1,
+        alpha: 0.7, emis: 3.2, drag: 8, light: 78,
       });
       F.Particles.burst(n.x, n.y - 4, 3, {
         sprite: 'dust', col: this.lv.B.dust, size: 5, size1: 11, life: 0.5,
@@ -219,6 +227,26 @@
       F.Particles.burst(n.x, n.y - 4, 10, {
         sprite: 'dust', col: this.lv.B.dust, size: 8, size1: 20, life: 0.8,
         speed0: 8, speed1: 52, emis: 0, alpha: 0.45, drag: 2.6,
+      });
+      // the shock of it, and the mark it leaves. A node that vanishes without
+      // a trace makes a worked-out seam look untouched.
+      this.rings.push({ x: n.x, y: n.y - 4, r: 8, r1: 34 + D.r * 2.2, t: 0.3, max: 0.3,
+        col: O.glow || F.Col.mix(O.col, '#ffffff', 0.3) });
+      F.Particles.spawn({
+        x: n.x, y: n.y - 4, vx: 0, vy: 0, life: 0.2,
+        sprite: 'blob', col: O.glow || O.col, size: 10, size1: 2,
+        alpha: 0.8, emis: 3.4, drag: 6, light: 120,
+      });
+      // spoil first, then the fracture over it: chips of the rock it was,
+      // in the colour of what came out of it
+      this.lv.decals.push({
+        sprite: 'gr_scree' + ((Math.random() * 3) | 0), x: n.x, y: n.y + 2,
+        rot: Math.random() * 6.2832, alpha: 0.85, scale: (D.r * 2.3) / 104,
+        tint: F.Col.tint(F.Col.mix(this.lv.B.grit[0], O.col2, 0.45)),
+      });
+      this.lv.decals.push({
+        sprite: 'crackdecal', x: n.x, y: n.y + 2, rot: Math.random() * 6.2832,
+        alpha: 0.6, scale: (D.r * 2.4) / 32, tint: F.Col.tint(F.Col.mix(this.lv.B.crack, O.col2, 0.35)),
       });
       if (D.seal) {
         F.Game.toast('The rock gives way.', F.PAL.cool, 3);
