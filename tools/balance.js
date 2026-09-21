@@ -116,7 +116,7 @@ for (let d = 1; d <= F.MAX_DEPTH; d++) {
 }
 
 console.log('\n--- how many runs each upgrade costs -------------------------------');
-console.log(pad('PICKAXE', 20) + num('COST', 12) + '   at its intended depth');
+console.log(pad('PICKAXE', 20) + 'COST'.padStart(12) + '   at its intended depth');
 for (let i = 1; i < F.PICKS.length; i++) {
   const p = F.PICKS[i];
   // the depth a player is plausibly running when this becomes affordable
