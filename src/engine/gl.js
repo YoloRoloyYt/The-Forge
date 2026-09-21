@@ -132,6 +132,14 @@
       return { fb, tex: texs, w, h, bufs };
     },
 
+    /** Release an FBO and the textures hanging off it. */
+    freeFbo(f) {
+      if (!f) return;
+      const gl = this.gl;
+      for (const t of f.tex) gl.deleteTexture(t);
+      gl.deleteFramebuffer(f.fb);
+    },
+
     bindFbo(f, clear) {
       const gl = this.gl;
       if (f) { gl.bindFramebuffer(gl.FRAMEBUFFER, f.fb); gl.viewport(0, 0, f.w, f.h); gl.drawBuffers(f.bufs); }

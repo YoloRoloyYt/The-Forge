@@ -16,10 +16,12 @@
     level: 3,                 // 3 = everything, 0 = get it on screen
     avg: 16, samples: 0, cooldown: 2.5, locked: false,
     LEVELS: [
-      { shadows: 0,  haze: 0,    bloom: 0.0,  grain: 0,    ca: 0,      scale: 0.66 },
-      { shadows: 0,  haze: 0.5,  bloom: 0.55, grain: 0.5,  ca: 0.5,    scale: 0.8 },
-      { shadows: 12, haze: 0.85, bloom: 0.85, grain: 1,    ca: 1,      scale: 1 },
-      { shadows: 22, haze: 1,    bloom: 1,    grain: 1,    ca: 1,      scale: 1 },
+      // `res` is the world buffer's resolution scale. The buffer is only
+      // 640x360 to begin with, so this is the last lever pulled, not the first.
+      { shadows: 0,  haze: 0,    bloom: 0.0,  grain: 0,    ca: 0,   res: 0.70 },
+      { shadows: 0,  haze: 0.5,  bloom: 0.55, grain: 0.5,  ca: 0.5, res: 0.85 },
+      { shadows: 12, haze: 0.85, bloom: 0.85, grain: 1,    ca: 1,   res: 1 },
+      { shadows: 22, haze: 1,    bloom: 1,    grain: 1,    ca: 1,   res: 1 },
     ],
     apply() {
       const L = this.LEVELS[this.level];
@@ -29,6 +31,8 @@
       F.Render.bloomScale = L.bloom;
       F.Render.grain = 0.030 * st.grain * L.grain;
       F.Render.ca = 0.0045 * L.ca;
+      // the world buffer keeps its size in world units; only its pixel count moves
+      if (F.Render.resize) F.Render.resize(Math.round(F.VW * L.res / 2) * 2, Math.round(F.VH * L.res / 2) * 2);
     },
     sample(dt) {
       if (this.locked) return;
@@ -81,7 +85,7 @@
     F.VH = 360;
     F.VW = Math.round(F.VH * aspect / 2) * 2;
     F.VW = F.U.clamp(F.VW, 480, 900);
-    if (F.Render.w !== F.VW) F.Render.resize && F.Render.resize(F.VW, F.VH);
+    if (F.Quality) F.Quality.apply();
     F.Input._vw = F.VW; F.Input._vh = F.VH;
     const sc = F.Game.world();
     if (sc) { sc.cam.vw = F.VW; sc.cam.vh = F.VH; }
@@ -127,17 +131,6 @@
 
     F.Game.push(new F.TitleScene());
     requestAnimationFrame(frame);
-  };
-
-  // Rebuild the render targets when the window aspect changes.
-  F.Render.resize = function (w, h) {
-    const gl = F.GL.gl;
-    const old = [this.gbuf, this.lightBuf, this.scene].concat(this.mips);
-    for (const f of old) if (f) { gl.deleteFramebuffer(f.fb); for (const t of f.tex) gl.deleteTexture(t); }
-    const keepOcc = this.occTex, keepSize = this.occSize, keepTile = this.tile, keepMacro = this.macroTex;
-    this.init(w, h);
-    this.occTex = keepOcc; this.occSize = keepSize; this.tile = keepTile;
-    if (keepMacro) { gl.deleteTexture(this.macroTex); this.macroTex = keepMacro; }
   };
 
 })(window.F2 = window.F2 || {});

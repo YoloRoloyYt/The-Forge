@@ -321,21 +321,7 @@
     init(w, h) {
       const gl = F.GL.gl;
       this.w = w; this.h = h;
-      const HDR = F.GL.floatOK ? 'rgba16f' : 'rgba8';
-      this.gbuf = F.GL.fbo(w, h, [{}, {}, {}]);                       // albedo | normal | emissive
-      this.lightBuf = F.GL.fbo(w, h, [{ fmt: HDR, filter: gl.LINEAR }]);
-      this.scene = F.GL.fbo(w, h, [{ fmt: HDR, filter: gl.LINEAR }]);
-      // Stop the chain well before the mips get tiny. A 4x4 mip turns every
-      // bright pixel into a screen-wide axis-aligned cross when it is tented
-      // back up, which is the classic "plus-shaped bloom" artefact.
-      this.mips = [];
-      let mw = w, mh = h;
-      for (let i = 0; i < this.MIP_COUNT; i++) {
-        const nw = mw >> 1, nh = mh >> 1;
-        if (nh < 20) break;
-        mw = nw; mh = nh;
-        this.mips.push(F.GL.fbo(mw, mh, [{ fmt: HDR, filter: gl.LINEAR }]));
-      }
+      this.buffers(w, h);
 
       this.pLight = F.GL.program(LIGHT_VS, LIGHT_FS, 'light');
       this.pComp = F.GL.program(F.GL.FS_VS, COMPOSITE_FS, 'composite');
@@ -390,6 +376,39 @@
       F.Batch.begin();
       F.GL.bindFbo(this.gbuf, [0, 0, 0, 0]);
       F.GL.blend('premul');
+    },
+
+    /** (Re)build every screen-sized target. Safe to call again on a resize. */
+    buffers(w, h) {
+      const gl = F.GL.gl;
+      F.GL.freeFbo(this.gbuf); F.GL.freeFbo(this.lightBuf); F.GL.freeFbo(this.scene);
+      for (const m of this.mips || []) F.GL.freeFbo(m);
+      this.w = w; this.h = h;
+      const HDR = F.GL.floatOK ? 'rgba16f' : 'rgba8';
+      this.gbuf = F.GL.fbo(w, h, [{}, {}, {}]);                       // albedo | normal | emissive
+      this.lightBuf = F.GL.fbo(w, h, [{ fmt: HDR, filter: gl.LINEAR }]);
+      this.scene = F.GL.fbo(w, h, [{ fmt: HDR, filter: gl.LINEAR }]);
+      // Stop the chain well before the mips get tiny. A 4x4 mip turns every
+      // bright pixel into a screen-wide axis-aligned cross when it is tented
+      // back up, which is the classic "plus-shaped bloom" artefact.
+      this.mips = [];
+      let mw = w, mh = h;
+      for (let i = 0; i < this.MIP_COUNT; i++) {
+        const nw = mw >> 1, nh = mh >> 1;
+        if (nh < 20) break;
+        mw = nw; mh = nh;
+        this.mips.push(F.GL.fbo(mw, mh, [{ fmt: HDR, filter: gl.LINEAR }]));
+      }
+    },
+
+    /**
+     * The world buffer is sized from the window's aspect, so it changes when
+     * the window does. Without this the targets stayed at whatever size the
+     * game booted at and the scene was rendered at the wrong resolution.
+     */
+    resize(w, h) {
+      if (w === this.w && h === this.h) return;
+      this.buffers(w, h);
     },
 
     /**
