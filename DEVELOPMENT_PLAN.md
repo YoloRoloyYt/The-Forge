@@ -59,7 +59,25 @@ them is rolled fresh every descent.
 - [x] **Balance** — economy simulation, numerically solved XP curve, forge windows fitted
       against a millisecond-error autoplayer, 52 logic tests
 - [x] **Volumetric haze** — a fraction of the light added rather than multiplied, per biome
-- [x] **Adaptive quality** — frame time measured, detail stepped to match the machine
+- [x] **Adaptive quality** — frame time measured, detail stepped to match the machine, down to
+      the world buffer's own resolution (139.6ms → 82.8ms per frame across the ladder, measured
+      under a software rasteriser)
+- [x] **World-space detail** — the shapes a 32px tile cannot reach: scree fields, branching
+      fissures, bedrock slabs and damp staining scattered across tile boundaries and tinted per
+      biome; crust rafts on molten pools; shoreline crust on every bank; spoil and fracture left
+      where a node was mined out
+- [x] **Liquids** — molten rock as a hot sheet with cooled crust drifting on it, water as a
+      crawling caustic net over a dark body, both phased by world position so a pool flows as a
+      wave instead of blinking in unison; pools light their own banks
+- [x] **Ambient life** — dust in the lantern's reach, embers and smoke over molten rock,
+      bubbles, ceiling drips landing in a ring, grit shaken off the wall faces
+- [x] **Figures** — faceted ore inclusions threaded with veins, a cool rim on every character
+      taken from the depth's own air, a mantle and a lit chest core per boss so the three that
+      share a body are no longer the same monster in different paint
+- [x] **The forge, drawn as a forge** — a coal bed that never goes out, flame tongues that lean
+      with the blast, a pleated bellows hinged at the nozzle, a crucible with melt in it, a
+      stream that leaves the lip, an anvil with a horn and a waist, and a hammer that falls with
+      the ring so it lands exactly on the beat
 
 ## Not built
 
