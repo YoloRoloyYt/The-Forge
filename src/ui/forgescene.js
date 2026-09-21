@@ -67,6 +67,7 @@
     // -------------------------------------------------------------- update
     update(dt) {
       this.t += dt;
+      this._lastDt = dt;
       this.shake = Math.max(0, this.shake - dt * 6);
       for (let i = this.fx.length - 1; i >= 0; i--) {
         const f = this.fx[i];
@@ -504,21 +505,72 @@
       U.roundRect(cx - 200, cy - 118, 400, 224, 18); g.stroke();
       g.strokeStyle = P.brassDim; g.lineWidth = 2;
       U.roundRect(cx - 192, cy - 110, 384, 208, 14); g.stroke();
-      // firebrick inside, glowing with the heat
+      // Firebrick inside. A forge that is dark when it is cold reads as an empty
+      // box, so the bed never drops below a low burn — what the bellows changes
+      // is how violently it burns, not whether it is alight at all.
       g.beginPath(); U.roundRect(cx - 186, cy - 104, 372, 196, 12); g.clip();
-      const bg = g.createRadialGradient(cx, cy + 40, 10, cx, cy + 40, 260);
-      bg.addColorStop(0, 'rgba(' + F.Col.parse(heatColour(b.heat)).join(',') + ',' + (0.30 + b.heat * 0.55) + ')');
-      bg.addColorStop(1, 'rgba(20,8,6,0.9)');
       g.fillStyle = '#1b1114'; g.fillRect(cx - 200, cy - 118, 400, 224);
-      g.fillStyle = bg; g.fillRect(cx - 200, cy - 118, 400, 224);
-      // coals
-      for (let i = 0; i < 26; i++) {
-        const a = (i * 2.399) % 6.2832, rr = 30 + (i % 7) * 22;
-        const px = cx + Math.cos(a) * rr, py = cy + 52 + Math.sin(a) * rr * 0.34;
-        const gl = F.U.sat(b.heat * (0.55 + 0.45 * Math.sin(this.t * 3 + i)));
-        g.fillStyle = F.Col.mix('#241416', heatColour(gl), 0.85);
-        g.beginPath(); g.ellipse(px, py, 7 + (i % 3) * 3, 5 + (i % 3) * 2, 0, 0, 7); g.fill();
+      // the brick courses at the back of the mouth
+      g.save(); g.globalAlpha = 0.5;
+      for (let row = 0; row < 5; row++) {
+        const y = cy - 104 + row * 26, off = (row % 2) * 24;
+        for (let i = -1; i < 9; i++) {
+          g.fillStyle = row % 2 ? '#2a1f22' : '#241a1d';
+          g.fillRect(cx - 186 + off + i * 48, y, 45, 23);
+        }
       }
+      g.restore();
+      const burn = 0.22 + b.heat * 0.78;
+      // the glow sits over the bed rather than washing the whole mouth: fill the
+      // box with the heat colour at full heat and the firebrick disappears
+      const bg = g.createRadialGradient(cx, cy + 52, 10, cx, cy + 52, 210);
+      bg.addColorStop(0, 'rgba(' + F.Col.parse(heatColour(Math.max(0.16, b.heat))).join(',') + ',' + (0.22 + burn * 0.40) + ')');
+      bg.addColorStop(0.55, 'rgba(' + F.Col.parse(heatColour(Math.max(0.10, b.heat * 0.6))).join(',') + ',' + (0.10 + burn * 0.20) + ')');
+      bg.addColorStop(1, 'rgba(20,8,6,0.55)');
+      g.fillStyle = bg; g.fillRect(cx - 200, cy - 118, 400, 224);
+      // the coal bed
+      for (let i = 0; i < 34; i++) {
+        const a = (i * 2.399) % 6.2832, rr = 24 + (i % 8) * 21;
+        const px = cx + Math.cos(a) * rr, py = cy + 54 + Math.sin(a) * rr * 0.34;
+        const gl = F.U.sat(Math.max(0.14, b.heat) * (0.55 + 0.45 * Math.sin(this.t * 3 + i)));
+        g.fillStyle = F.Col.mix('#241416', heatColour(gl), 0.88);
+        g.beginPath(); g.ellipse(px, py, 7 + (i % 3) * 3, 5 + (i % 3) * 2, 0, 0, 7); g.fill();
+        // the seam of live coal between the lumps
+        g.save(); g.globalCompositeOperation = 'lighter';
+        g.globalAlpha = 0.25 + burn * 0.4;
+        g.fillStyle = heatColour(F.U.sat(gl + 0.18));
+        g.beginPath(); g.ellipse(px + 3, py + 2, 3 + (i % 3), 1.6 + (i % 2), 0, 0, 7); g.fill();
+        g.restore();
+      }
+      // flame tongues off the bed, leaning with the blast
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const lean = b.pumping ? 26 : 0;
+      for (let i = 0; i < 13; i++) {
+        const ph = this.t * (2.1 + (i % 4) * 0.55) + i * 1.7;
+        const fx = cx - 150 + i * 25 + Math.sin(ph * 0.7) * 6;
+        const h = (26 + Math.sin(ph) * 12) * (0.35 + burn * 1.25);
+        const fy = cy + 52;
+        const fg = g.createLinearGradient(fx, fy, fx + lean * 0.4, fy - h);
+        fg.addColorStop(0, 'rgba(255,150,40,' + (0.12 + burn * 0.16) + ')');
+        fg.addColorStop(0.55, 'rgba(255,90,20,' + (0.07 + burn * 0.11) + ')');
+        fg.addColorStop(1, 'rgba(120,20,0,0)');
+        g.fillStyle = fg;
+        g.beginPath();
+        g.moveTo(fx - 10, fy + 4);
+        g.quadraticCurveTo(fx - 5 + lean * 0.2, fy - h * 0.6, fx + lean * 0.4, fy - h);
+        g.quadraticCurveTo(fx + 6 + lean * 0.2, fy - h * 0.55, fx + 10, fy + 4);
+        g.closePath(); g.fill();
+      }
+      // embers lifting off the bed and dying against the arch
+      for (let i = 0; i < 20; i++) {
+        const ph = (this.t * (0.35 + (i % 5) * 0.09) + i * 0.137) % 1;
+        const ex = cx - 160 + ((i * 97) % 320) + Math.sin(this.t * 1.7 + i) * 9;
+        const ey = cy + 58 - ph * 150;
+        g.globalAlpha = (1 - ph) * (0.25 + burn * 0.6);
+        g.fillStyle = heatColour(0.55 + (i % 3) * 0.15);
+        g.beginPath(); g.arc(ex, ey, 1 + (i % 3) * 0.7, 0, 7); g.fill();
+      }
+      g.restore();
       g.restore();
 
       // ---- the ingot on the hearth
@@ -542,14 +594,34 @@
       g.restore();
       g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = 3;
       U.roundRect(cx - 86, cy - 26, 172, 50, 8); g.stroke();
-      g.save(); g.globalAlpha = 0.22; g.fillStyle = '#000';
+      // grooves down the bar. They have to deepen as it heats, or a white-hot
+      // ingot loses its form entirely and reads as a blank swatch.
+      g.save(); g.globalAlpha = 0.22 + b.heat * 0.26; g.fillStyle = '#000';
       for (let i = 0; i < 6; i++) g.fillRect(cx - 76 + i * 28, cy - 22, 3, 42);
+      g.globalAlpha = 0.16 + b.heat * 0.20;
+      g.fillRect(cx - 86, cy + 14, 172, 10);
       g.restore();
 
       // the gauge
       const gx = cx + 250, gy = 190, gw = 66, gh = 360;
       g.fillStyle = 'rgba(0,0,0,0.65)';
       U.roundRect(gx, gy, gw, gh, 10); g.fill();
+      // the column itself carries the heat scale, so the needle has something
+      // to be read against rather than floating in a black slot
+      g.save();
+      g.beginPath(); U.roundRect(gx + 2, gy + 2, gw - 4, gh - 4, 8); g.clip();
+      const cg = g.createLinearGradient(0, gy + gh, 0, gy);
+      for (let i = 0; i <= 8; i++) cg.addColorStop(i / 8, heatColour(i / 8));
+      g.globalAlpha = 0.22; g.fillStyle = cg;
+      g.fillRect(gx + 2, gy + 2, gw - 4, gh - 4);
+      g.globalAlpha = 1;
+      g.strokeStyle = 'rgba(239,230,218,0.30)'; g.lineWidth = 1;
+      for (let i = 1; i < 10; i++) {
+        const y = gy + gh - (i / 10) * gh, lng = i % 5 === 0 ? 16 : 9;
+        g.beginPath(); g.moveTo(gx + 2, y); g.lineTo(gx + 2 + lng, y); g.stroke();
+        g.beginPath(); g.moveTo(gx + gw - 2, y); g.lineTo(gx + gw - 2 - lng, y); g.stroke();
+      }
+      g.restore();
       // the band
       const bandY = gy + gh - (b.band + b.bandW / 2) * gh;
       const bandH = b.bandW * gh;
@@ -575,50 +647,98 @@
       U.roundRect(gx, gy, gw, gh, 10); g.stroke();
       U.text('HEAT', gx + gw / 2, gy - 12, { size: 12, weight: '700', align: 'center', col: P.textDim });
 
-      // ---- the bellows, opening and shutting
-      const bw = 190, bhh = 128, bx = cx - 400, by = cy - 52;
-      const open = b.pumping ? 0.30 : 1;
-      const spread = (bhh / 2) * (1 - open);
+      // ---- the bellows: two boards hinged at the nozzle with pleated leather
+      // between them. It was a flat pentagon before, which collapsed into a
+      // stack of tan rectangles the moment it shut.
+      //
+      // Built in local space with the hinge at the origin and the body running
+      // out along +x, then mirrored into place — so the nozzle ends up pointing
+      // at the hearth and the handle at the far end, rather than the reverse.
+      const bw = 210, bhh = 132;
+      const hx = cx - 232, hy = cy + 6;
+      const shut = b.pumping ? 1 : 0;
+      b.swing = b.swing === undefined ? 0 : b.swing + (shut - b.swing) * Math.min(1, dtSafe(this) * 9);
+      // it never shuts flat: a bellows with no air in it reads as a pair of tongs
+      const gap = (bhh / 2) * (1 - b.swing * 0.52);
+
       g.save();
-      // leather body
-      const lg = g.createLinearGradient(bx, by, bx, by + bhh);
-      lg.addColorStop(0, '#6b4e30'); lg.addColorStop(0.5, '#4a3524'); lg.addColorStop(1, '#33240f');
-      g.fillStyle = lg;
+      g.translate(hx, hy); g.scale(-1, 1);
+      // leather between the boards, pleated
+      const leather = g.createLinearGradient(0, -gap, 0, gap);
+      leather.addColorStop(0, '#5b4029'); leather.addColorStop(0.5, '#3a2817'); leather.addColorStop(1, '#4e3722');
+      g.fillStyle = leather;
       g.beginPath();
-      g.moveTo(bx + 6, by + bhh / 2);
-      g.lineTo(bx + bw * 0.42, by + spread);
-      g.lineTo(bx + bw, by + spread + 16);
-      g.lineTo(bx + bw, by + bhh - spread - 16);
-      g.lineTo(bx + bw * 0.42, by + bhh - spread);
+      g.moveTo(8, -9);
+      g.lineTo(bw * 0.92, -gap - 2);
+      g.lineTo(bw * 0.92, gap + 2);
+      g.lineTo(8, 9);
       g.closePath(); g.fill();
-      g.strokeStyle = '#7d5c38'; g.lineWidth = 3; g.stroke();
-      // pleats
-      g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 2;
-      for (let i = 1; i < 5; i++) {
-        const t2 = i / 5;
-        const xx = bx + bw * (0.42 + t2 * 0.58);
-        g.beginPath();
-        g.moveTo(xx, by + spread + 16 * t2 + (1 - t2) * 4);
-        g.lineTo(xx, by + bhh - spread - 16 * t2 - (1 - t2) * 4);
-        g.stroke();
+      g.strokeStyle = 'rgba(0,0,0,0.42)'; g.lineWidth = 2;
+      for (let i = 1; i < 7; i++) {
+        const t2 = i / 7, xx = 8 + (bw * 0.92 - 8) * t2;
+        const yy = 9 + (gap - 7) * t2;
+        g.beginPath(); g.moveTo(xx, -yy); g.lineTo(xx, yy); g.stroke();
       }
-      // top board and handle
-      g.fillStyle = '#5e442c';
-      U.roundRect(bx + bw * 0.38, by + spread - 12, bw * 0.64, 14, 4); g.fill();
-      g.fillStyle = '#3f2e1e';
-      U.roundRect(bx + bw * 0.94, by + spread - 30, 14, 22, 5); g.fill();
-      // nozzle
+      // a highlight down the top of the bag so it has volume
+      g.save(); g.globalAlpha = 0.16; g.fillStyle = '#c9a26a';
+      g.beginPath();
+      g.moveTo(8, -9); g.lineTo(bw * 0.92, -gap - 2);
+      g.lineTo(bw * 0.92, -gap + 10); g.lineTo(8, -3);
+      g.closePath(); g.fill(); g.restore();
+      // the two boards
+      for (const dir of [-1, 1]) {
+        const tipY = dir * gap;
+        const wg = g.createLinearGradient(0, tipY, bw, tipY + dir * 26);
+        wg.addColorStop(0, '#4a3422'); wg.addColorStop(0.45, '#6b4e30'); wg.addColorStop(1, '#3f2c1c');
+        g.fillStyle = wg;
+        g.beginPath();
+        g.moveTo(0, dir * 10);
+        g.lineTo(bw * 0.26, tipY * 0.90);
+        g.lineTo(bw, tipY + dir * 14);
+        g.lineTo(bw, tipY + dir * 32);
+        g.lineTo(bw * 0.24, tipY * 0.90 + dir * 17);
+        g.closePath(); g.fill();
+        g.strokeStyle = '#2a1c11'; g.lineWidth = 2; g.stroke();
+        g.strokeStyle = '#6d6673'; g.lineWidth = 3;
+        g.beginPath();
+        g.moveTo(bw * 0.36, tipY * 0.90 + dir * 6);
+        g.lineTo(bw * 0.94, tipY + dir * 22);
+        g.stroke();
+        g.fillStyle = '#9a92a6';
+        for (let i = 0; i < 4; i++) {
+          const t2 = 0.42 + i * 0.16;
+          g.beginPath();
+          g.arc(bw * t2, tipY * (0.90 + i * 0.024) + dir * (7 + i * 3.4), 2.1, 0, 7); g.fill();
+        }
+      }
+      // the handle on the top board, out at the far end
+      g.fillStyle = '#33240f';
+      U.roundRect(bw - 15, -gap - 30, 16, 34, 5); g.fill();
+      g.strokeStyle = '#7d5c38'; g.lineWidth = 2;
+      U.roundRect(bw - 15, -gap - 30, 16, 34, 5); g.stroke();
+      // hinge collar, then the nozzle running out toward the hearth
+      g.fillStyle = '#6d6673';
+      U.roundRect(-3, -14, 10, 28, 3); g.fill();
       g.fillStyle = '#4a4650';
-      U.roundRect(bx - 4, by + bhh / 2 - 9, 18, 18, 4); g.fill();
+      U.roundRect(-26, -9, 26, 18, 4); g.fill();
+      g.fillStyle = '#5c5766';
+      U.roundRect(-30, -11, 8, 22, 3); g.fill();
       g.restore();
+
       // the blast into the hearth
-      if (b.pumping) {
+      if (b.swing > 0.15) {
         g.save(); g.globalCompositeOperation = 'lighter';
-        const grad = g.createLinearGradient(bx + bw, cy, cx - 200, cy);
-        grad.addColorStop(0, 'rgba(255,190,110,0.30)');
+        g.globalAlpha = b.swing;
+        const grad = g.createLinearGradient(hx + 30, hy, cx - 190, hy);
+        grad.addColorStop(0, 'rgba(255,205,140,0.34)');
         grad.addColorStop(1, 'rgba(255,120,40,0)');
         g.fillStyle = grad;
-        g.fillRect(bx - 10, cy - 18, cx - 190 - bx, 36);
+        g.beginPath();
+        g.moveTo(hx + 30, hy - 8);
+        g.lineTo(cx - 186, hy - 34);
+        g.lineTo(cx - 186, hy + 34);
+        g.lineTo(hx + 30, hy + 8);
+        g.closePath(); g.fill();
         g.restore();
       }
 
@@ -638,56 +758,142 @@
       U.para('Stop the pour inside the green. Too little and it is thin; too much and it is slag.',
         cx - 330, 124, 660, { size: 15, col: P.textDim, align: 'center' });
 
-      // the crucible tipping
+      const mw = 300, mh = 220, mx = cx - mw / 2, my = 400;
+      const fh = F.U.clamp(p.fill, 0, 1.3) * mh;
+      const surfY = my + mh - fh;
+
+      // ---- the crucible. A rotated ellipse outline reads as a hole in the
+      // screen; what makes it a vessel is a lip, a wall thickness, and the
+      // melt you can see sitting in it.
+      const tilt = p.stopped ? 0.16 : 0.66;
       g.save();
-      g.translate(cx, 250);
-      g.rotate(p.stopped ? 0.1 : 0.62);
-      g.fillStyle = '#231d24';
-      g.beginPath(); g.ellipse(0, 0, 90, 46, 0, 0, 7); g.fill();
-      g.strokeStyle = '#4a4150'; g.lineWidth = 6; g.stroke();
+      g.translate(cx - 36, 246);
+      g.rotate(tilt);
+      // the bail, behind the body
+      g.strokeStyle = '#59535f'; g.lineWidth = 6; g.lineCap = 'round';
+      g.beginPath(); g.arc(0, -6, 58, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+      // body: a tapering crucible seen from the side
+      const bodyG = g.createLinearGradient(-70, 0, 70, 0);
+      bodyG.addColorStop(0, '#191319'); bodyG.addColorStop(0.42, '#342c38'); bodyG.addColorStop(1, '#17121a');
+      g.fillStyle = bodyG;
+      g.beginPath();
+      g.moveTo(-72, -8); g.lineTo(72, -8);
+      g.lineTo(46, 54); g.quadraticCurveTo(0, 68, -46, 54);
+      g.closePath(); g.fill();
+      g.strokeStyle = '#4a4150'; g.lineWidth = 4; g.stroke();
+      // the mouth, and the melt in it
+      g.fillStyle = '#120d13';
+      g.beginPath(); g.ellipse(0, -8, 72, 22, 0, 0, 7); g.fill();
+      const meltG = g.createRadialGradient(-14, -14, 4, 0, -8, 70);
+      meltG.addColorStop(0, '#fff2c8'); meltG.addColorStop(0.5, '#ffa832'); meltG.addColorStop(1, '#b83c06');
+      g.save(); g.globalAlpha = p.stopped ? 0.35 : 1;
+      g.fillStyle = meltG;
+      g.beginPath(); g.ellipse(0, -8, 64, 17, 0, 0, 7); g.fill();
+      g.restore();
+      // the rim the melt runs over
+      g.strokeStyle = '#6d6673'; g.lineWidth = 5;
+      g.beginPath(); g.ellipse(0, -8, 72, 22, 0, 0, 7); g.stroke();
+      g.strokeStyle = '#9a92a6'; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(0, -10, 72, 22, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
       g.restore();
 
-      // the stream
+      // ---- the stream, narrowing as it falls and landing in the metal
       if (!p.stopped) {
+        // the lip of the tilted crucible, so the stream leaves the metal
+        // rather than starting in mid-air below it
+        const x0 = cx + 26, y0 = 284;
         g.save();
         g.globalCompositeOperation = 'lighter';
-        const grad = g.createLinearGradient(cx, 260, cx, 560);
-        grad.addColorStop(0, 'rgba(255,240,190,0.95)');
-        grad.addColorStop(1, 'rgba(255,120,30,0.65)');
+        const wob = (yy) => Math.sin(this.t * 9 + p.wobble + yy * 0.02) * 3;
+        const edge = (side) => {
+          g.beginPath();
+          for (let yy = y0; yy <= surfY; yy += 8) {
+            const t2 = (yy - y0) / Math.max(1, surfY - y0);
+            const w = 7 - t2 * 2.4;
+            const xx = x0 + wob(yy) * (1 - t2 * 0.4) + side * w;
+            yy === y0 ? g.moveTo(xx, yy) : g.lineTo(xx, yy);
+          }
+          return g;
+        };
+        const grad = g.createLinearGradient(0, y0, 0, surfY);
+        grad.addColorStop(0, 'rgba(255,240,190,0.92)');
+        grad.addColorStop(1, 'rgba(255,130,34,0.72)');
         g.fillStyle = grad;
-        const wob = Math.sin(this.t * 9 + p.wobble) * 3;
         g.beginPath();
-        g.moveTo(cx - 9 + wob, 258); g.lineTo(cx + 9 + wob, 258);
-        g.lineTo(cx + 14, 560); g.lineTo(cx - 14, 560);
+        for (let yy = y0; yy <= surfY; yy += 8) {
+          const t2 = (yy - y0) / Math.max(1, surfY - y0), w = 7 - t2 * 2.4;
+          const xx = x0 + wob(yy) * (1 - t2 * 0.4);
+          yy === y0 ? g.moveTo(xx - w, yy) : g.lineTo(xx - w, yy);
+        }
+        for (let yy = surfY; yy >= y0; yy -= 8) {
+          const t2 = (yy - y0) / Math.max(1, surfY - y0), w = 7 - t2 * 2.4;
+          const xx = x0 + wob(yy) * (1 - t2 * 0.4);
+          g.lineTo(xx + w, yy);
+        }
         g.closePath(); g.fill();
+        // a white core down the middle
+        g.globalAlpha = 0.6; g.strokeStyle = '#fffaf0'; g.lineWidth = 2.6; g.lineCap = 'round';
+        g.beginPath();
+        for (let yy = y0; yy <= surfY; yy += 8) {
+          const xx = x0 + wob(yy);
+          yy === y0 ? g.moveTo(xx, yy) : g.lineTo(xx, yy);
+        }
+        g.stroke();
         g.restore();
       }
 
-      // the mould
-      const mw = 300, mh = 220, mx = cx - mw / 2, my = 400;
-      g.fillStyle = 'rgba(0,0,0,0.7)';
+      // ---- the mould: a sand box with an iron rim
+      g.save();
+      const sand = g.createLinearGradient(0, my, 0, my + mh);
+      sand.addColorStop(0, '#2a2129'); sand.addColorStop(1, '#171218');
+      g.fillStyle = sand;
       U.roundRect(mx, my, mw, mh, 10); g.fill();
+      g.restore();
       // target band
       const ty = my + mh - p.target * mh, th = 0.14 * mh;
       g.save();
-      g.shadowColor = '#6ee787'; g.shadowBlur = 16;
-      g.fillStyle = 'rgba(110,231,135,0.22)';
+      g.shadowColor = '#6ee787'; g.shadowBlur = 10;
+      g.fillStyle = 'rgba(110,231,135,0.13)';
       g.fillRect(mx + 4, ty - th / 2, mw - 8, th);
       g.strokeStyle = '#6ee787'; g.lineWidth = 2;
       g.strokeRect(mx + 4, ty - th / 2, mw - 8, th);
       g.restore();
-      // the metal
-      const fh = F.U.clamp(p.fill, 0, 1.3) * mh;
+      // the metal, with a skin on top that is hotter than the body
       g.save();
       g.beginPath(); U.roundRect(mx, my, mw, mh, 10); g.clip();
-      const grad2 = g.createLinearGradient(0, my + mh - fh, 0, my + mh);
-      grad2.addColorStop(0, '#ffe9b0'); grad2.addColorStop(1, '#ff7a24');
-      g.shadowColor = '#ff9a3c'; g.shadowBlur = 30;
+      const grad2 = g.createLinearGradient(0, surfY, 0, my + mh);
+      grad2.addColorStop(0, '#ffe9b0'); grad2.addColorStop(0.35, '#ff9a3c'); grad2.addColorStop(1, '#c0470a');
       g.fillStyle = grad2;
-      g.fillRect(mx + 4, my + mh - fh, mw - 8, fh);
+      g.fillRect(mx + 4, surfY, mw - 8, fh);
+      if (fh > 4) {
+        // the surface: a lit meniscus, rippling where the stream lands
+        g.globalCompositeOperation = 'lighter';
+        g.fillStyle = 'rgba(255,248,224,0.30)';
+        g.beginPath();
+        g.moveTo(mx + 4, surfY + 3);
+        for (let xx = mx + 4; xx <= mx + mw - 4; xx += 10) {
+          const rip = p.stopped ? 0 : Math.sin(this.t * 7 + (xx - cx) * 0.07) * 2.2
+            * Math.exp(-Math.abs(xx - cx) / 90);
+          g.lineTo(xx, surfY + rip);
+        }
+        g.lineTo(mx + mw - 4, surfY + 4); g.lineTo(mx + 4, surfY + 4);
+        g.closePath(); g.fill();
+        g.globalCompositeOperation = 'source-over';
+        // scum drifting on the surface
+        g.fillStyle = 'rgba(70,32,14,0.5)';
+        for (let i = 0; i < 5; i++) {
+          const xx = cx + Math.sin(this.t * 0.6 + i * 2.1) * (mw * 0.32);
+          g.beginPath(); g.ellipse(xx, surfY + 4, 12 + i * 4, 2.4, 0, 0, 7); g.fill();
+        }
+      }
       g.restore();
       g.strokeStyle = P.brass; g.lineWidth = 2;
       U.roundRect(mx, my, mw, mh, 10); g.stroke();
+      // the iron rim sits proud of the sand
+      g.fillStyle = '#4a4552';
+      U.roundRect(mx - 10, my - 10, mw + 20, 16, 5); g.fill();
+      g.fillStyle = '#5c5768';
+      U.roundRect(mx - 10, my - 10, mw + 20, 6, 3); g.fill();
 
       U.text(p.stopped ? (this.parts.pour > 0.8 ? 'CLEAN POUR' : this.parts.pour > 0.45 ? 'ACCEPTABLE' : 'WASTEFUL')
         : (F.Input.touch ? 'TAP TO STOP' : 'CLICK OR SPACE TO STOP'),
@@ -702,17 +908,38 @@
       U.para('Strike when the ring meets the mark. Every strike counts; the last ones come faster.',
         cx - 340, 124, 680, { size: 15, col: P.textDim, align: 'center' });
 
-      // the anvil
+      // ---- the anvil. Three stacked slabs read as flat-pack shelving; an anvil
+      // is a horn, a face, a waist and a foot, and the waist is what says it
+      // weighs three hundredweight.
+      const faceY = cy + 34;
       g.save();
-      g.fillStyle = '#332f3a';
+      const ig2 = g.createLinearGradient(0, faceY, 0, cy + 100);
+      ig2.addColorStop(0, '#46414f'); ig2.addColorStop(0.45, '#2c2833'); ig2.addColorStop(1, '#1c1922');
+      g.fillStyle = ig2;
       g.beginPath();
-      g.moveTo(cx - 170, cy + 96); g.lineTo(cx + 170, cy + 96);
-      g.lineTo(cx + 120, cy + 56); g.lineTo(cx - 120, cy + 56);
+      g.moveTo(cx - 150, faceY);                      // heel end of the face
+      g.lineTo(cx + 132, faceY);
+      g.quadraticCurveTo(cx + 196, faceY + 6, cx + 214, faceY + 22);  // the horn
+      g.quadraticCurveTo(cx + 190, faceY + 30, cx + 134, faceY + 30);
+      g.lineTo(cx + 96, faceY + 30);
+      g.quadraticCurveTo(cx + 66, faceY + 46, cx + 62, faceY + 72);   // waist in
+      g.lineTo(cx + 92, faceY + 96);                  // and out to the foot
+      g.lineTo(cx + 108, faceY + 116);
+      g.lineTo(cx - 126, faceY + 116);
+      g.lineTo(cx - 110, faceY + 96);
+      g.lineTo(cx - 80, faceY + 72);
+      g.quadraticCurveTo(cx - 84, faceY + 46, cx - 114, faceY + 30);
+      g.lineTo(cx - 150, faceY + 30);
       g.closePath(); g.fill();
-      g.fillStyle = '#4a4552';
-      U.roundRect(cx - 190, cy + 34, 380, 26, 6); g.fill();
-      g.fillStyle = '#5c5768';
-      U.roundRect(cx - 190, cy + 34, 380, 8, 4); g.fill();
+      g.strokeStyle = '#1d1a24'; g.lineWidth = 3; g.stroke();
+      // the hardened face, catching the forge
+      g.fillStyle = '#585265';
+      U.roundRect(cx - 150, faceY - 7, 284, 10, 3); g.fill();
+      g.fillStyle = '#7a7389';
+      U.roundRect(cx - 150, faceY - 7, 284, 3.5, 2); g.fill();
+      // the hardy hole
+      g.fillStyle = '#16131c';
+      U.roundRect(cx - 128, faceY - 5, 15, 8, 2); g.fill();
       g.restore();
 
       // the piece taking shape on the anvil, glowing hot
@@ -722,7 +949,54 @@
       g.shadowColor = hot; g.shadowBlur = 40;
       g.fillStyle = hot;
       const pw = F.U.lerp(150, 190, prog), ph = F.U.lerp(46, 26, prog);
-      U.roundRect(cx - pw / 2, cy + 34 - ph, pw, ph, F.U.lerp(6, 3, prog)); g.fill();
+      U.roundRect(cx - pw / 2, faceY - 7 - ph, pw, ph, F.U.lerp(6, 3, prog)); g.fill();
+      g.restore();
+      // hammer marks, one per strike landed, so the billet records the work
+      g.save();
+      g.globalAlpha = 0.30; g.fillStyle = '#5a2a08';
+      for (let i = 0; i < h.i && i < h.n; i++) {
+        const t2 = (i + 0.5) / h.n;
+        g.beginPath();
+        g.ellipse(cx - pw / 2 + t2 * pw, faceY - 7 - ph * 0.55, 11, 5.5, 0, 0, 7); g.fill();
+      }
+      g.restore();
+
+      // ---- the hammer. It falls with the ring, so it lands on the billet at
+      // the exact moment the ring meets the mark: the player can read the swing
+      // instead of the diagram, which is what a blacksmith would be doing.
+      const span = Math.max(0.05, 1.6 - h.best);
+      let drop = F.U.sat((1.6 - h.ring) / span);
+      if (h.wait > 0) drop = 1 - F.U.sat((0.34 - h.wait) / 0.34);   // the recoil
+      const hy = faceY - 7 - ph - 148 + drop * 130;
+      const tiltH = -(1 - drop) * 0.85;      // swung back over the shoulder
+      g.save();
+      g.translate(cx + 6, hy);
+      g.rotate(-tiltH);
+      // The haft runs UP from the head: a hammer about to fall has its head at
+      // the bottom, and drawing it the other way up reads as a lollipop.
+      const haft = g.createLinearGradient(0, -140, 0, -6);
+      haft.addColorStop(0, '#3f2c1c'); haft.addColorStop(1, '#6b4e30');
+      g.fillStyle = haft;
+      U.roundRect(-7, -142, 14, 132, 6); g.fill();
+      g.strokeStyle = '#2a1c11'; g.lineWidth = 2;
+      U.roundRect(-7, -142, 14, 132, 6); g.stroke();
+      // the grip at the top of the haft
+      g.fillStyle = '#33240f';
+      U.roundRect(-9, -142, 18, 30, 6); g.fill();
+      // head
+      const hg = g.createLinearGradient(-46, 0, 46, 0);
+      hg.addColorStop(0, '#2b2732'); hg.addColorStop(0.42, '#6f697c'); hg.addColorStop(1, '#3a3543');
+      g.fillStyle = hg;
+      U.roundRect(-46, -16, 92, 34, 5); g.fill();
+      g.strokeStyle = '#191620'; g.lineWidth = 3;
+      U.roundRect(-46, -16, 92, 34, 5); g.stroke();
+      g.fillStyle = '#9a93a8';
+      U.roundRect(-44, -14, 88, 6, 3); g.fill();
+      // the peen end
+      g.fillStyle = '#4a4552';
+      g.beginPath();
+      g.moveTo(46, -12); g.lineTo(66, -4); g.lineTo(66, 6); g.lineTo(46, 14);
+      g.closePath(); g.fill();
       g.restore();
 
       // the ring
@@ -844,6 +1118,10 @@
   function roleCol(r) { return r === 'mult' ? P.cool : r === 'trait' ? P.magic : P.textFaint; }
 
   /** Blackbody-ish ramp: the single most important colour in the game. */
+  // draw() has no dt, and the bellows swing needs one to ease. The scene ticks
+  // at a fixed step, so the last frame's length is close enough for a lerp.
+  function dtSafe(sc) { return Math.min(0.05, sc._lastDt || 1 / 60); }
+
   function heatColour(h) {
     h = F.U.sat(h);
     if (h < 0.25) return F.Col.mix('#2a1a16', '#8a1c06', h / 0.25);
