@@ -114,7 +114,11 @@
 
     // ---- exits
     lv.exits.push({ kind: 'mine', x: CX * TS + 16, y: 6 * TS + 16, r: 30, label: 'Descend into the mines' });
-    lv.exits.push({ kind: 'forge', x: CX * TS + 16, y: (CY + 5) * TS + 16, r: 34, label: 'Work the Great Forge' });
+    // The forge's hotspot sits on the forge. It used to be five tiles south of
+    // the drum, so the prompt appeared in open floor with the forge nowhere
+    // near it. The drum's base is a solid disc the player cannot walk into, so
+    // the radius is sized to reach someone standing against it on any side.
+    lv.exits.push({ kind: 'forge', x: CX * TS + 16, y: CY * TS + 16, r: 120, label: 'Work the Great Forge' });
 
     // ---- props: the forge drum, braziers, anvils, crates
     lv.props.push({ kind: 'forgedrum', x: CX * TS + 16, y: CY * TS + 16, r: 0, solid: false });

@@ -484,7 +484,10 @@
       const p = this.player;
       this.prompt = null;
       if (p.dead) return;
-      let best = null, bd = 44;
+      // `bd` tracks the nearest candidate so far. It used to start at 44, which
+      // silently capped EVERY interaction at 44px however wide its own radius
+      // was authored — so a big object could not own the ground around it.
+      let best = null, bd = Infinity;
       for (const ex of this.lv.exits) {
         const d = Math.hypot(ex.x - p.x, ex.y - p.y);
         if (d < (ex.r || 26) + 10 && d < bd) { bd = d; best = { kind: 'exit', ex, label: ex.label, key: 'E' }; }
