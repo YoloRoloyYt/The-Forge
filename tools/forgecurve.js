@@ -28,7 +28,7 @@ const EXE = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-
   const rows = await p.evaluate(() => {
     const F = window.F2;
     const DT = 1 / 120;                       // fine step so ms error is meaningful
-    const play = (lagMs, jitterMs) => {
+    const play = (lagMs, jitterMs, leadMs) => {
       F.Game.newRun();
       F.Game.s.ores = { iron: 300, magmite: 120, cobalt: 60 };
       const sc = new F.ForgeScene();
@@ -42,11 +42,26 @@ const EXE = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-
         F.Input.keys = {}; F.Input.pressed = {};
         F.Input.mdown = false; F.Input.mclick = false;
         if (sc.stage === 1 && sc.bell) {
-          // a human holds a beat behind the band, not exactly on it
-          sc.bell._lagBuf = sc.bell._lagBuf || [];
-          sc.bell._lagBuf.push(sc.bell.heat < sc.bell.band);
-          const back = Math.max(0, sc.bell._lagBuf.length - 1 - Math.round(lag() / DT));
-          F.Input.keys.space = sc.bell._lagBuf[back];
+          // A human sees the band a beat late. `leadMs` is the part that is not
+          // reaction at all: a player who has watched the band swing a few times
+          // steers for where it is going, not where it was. Comparing the two at
+          // the same latency is the only way to tell whether the stage rewards
+          // reading it or just rewards fast hands.
+          const bl = sc.bell;
+          bl._lagBuf = bl._lagBuf || [];
+          bl._lagBuf.push({ heat: bl.heat, band: bl.band });
+          const lagSec = lag();
+          // jitter can make a sample time land in the future; clamp to the buffer
+          const back = Math.min(bl._lagBuf.length - 1,
+            Math.max(0, bl._lagBuf.length - 1 - Math.round(lagSec / DT)));
+          const seen = bl._lagBuf[back];
+          let want = seen.band;
+          if (leadMs) {
+            const prev = bl._lagBuf[Math.max(0, back - 4)];
+            const slope = (seen.band - prev.band) / (DT * Math.max(1, back - Math.max(0, back - 4)));
+            want = seen.band + slope * (lagSec + leadMs / 1000);
+          }
+          F.Input.keys.space = seen.heat < want;
         } else if (sc.stage === 2 && sc.pourS) {
           const q = sc.pourS;
           if (!q.stopped) {
@@ -69,11 +84,12 @@ const EXE = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-
       return { parts: sc.parts, q: it && it.quality, grade: it && it.grade, dmg: it && it.stats.dmg, val: it && it.value };
     };
     const out = [];
-    for (const [label, lag, jit] of [
-      ['expert   ±20ms', 15, 20], ['good     ±50ms', 40, 50], ['fair     ±90ms', 75, 90],
-      ['poor    ±160ms', 130, 160], ['bad     ±280ms', 230, 280], ['flailing', 500, 500]]) {
+    for (const [label, lag, jit, lead] of [
+      ['expert   ±20ms', 15, 20, 0], ['good     ±50ms', 40, 50, 0], ['fair     ±90ms', 75, 90, 0],
+      ['poor    ±160ms', 130, 160, 0], ['bad     ±280ms', 230, 280, 0], ['flailing', 500, 500, 0],
+      ['reads it ±160ms', 130, 160, 190], ['reads it ±280ms', 230, 280, 260]]) {
       const runs = [];
-      for (let i = 0; i < 5; i++) runs.push(play(lag, jit));
+      for (let i = 0; i < 9; i++) runs.push(play(lag, jit, lead));
       const m = k => runs.reduce((a, r) => a + (r[k] || 0), 0) / runs.length;
       const mp = k => Math.round(runs.reduce((a, r) => a + (r.parts[k] || 0), 0) / runs.length * 100);
       out.push({ label, bellows: mp('bellows'), pour: mp('pour'), hammer: mp('hammer'),

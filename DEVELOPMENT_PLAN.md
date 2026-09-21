@@ -100,5 +100,6 @@ them is rolled fresh every descent.
 - Whether depth VIII should have a second, harder variant rather than ending at the First
   Forger — the level cap currently arrives a little before the content does.
 - Whether the parry should have a shorter window and a shorter cooldown; it is generous now.
-- The bellows rewards a bang-bang hold rather than anticipation. A player who reads the band's
-  drift should beat one who only reacts to it, and right now they do not by much.
+- The pour and hammer columns of `tools/forgecurve.js` swing about ten points run to run, because
+  the pour target and the strike count are rolled per run. Nine runs is not enough to read them;
+  the bellows column is stable and is the one worth tuning against.

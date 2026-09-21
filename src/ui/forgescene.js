@@ -103,17 +103,18 @@
     // --------------------------------------------------------- 2. bellows
     updateBellows(dt, press) {
       const b = this.bell;
+      const K = F.BELLOWS;
       b.t += dt;
       b.pumping = F.Input.mdown || F.Input.down('space');
       // the melt heats while you pump and loses it when you stop
-      const target = b.pumping ? 1.25 : -0.25;
-      b.vel += (target - b.heat) * 2.3 * dt;
-      b.vel *= Math.exp(-2.6 * dt);
-      b.heat = F.U.clamp(b.heat + b.vel * dt * 1.7, 0, 1);
+      const target = b.pumping ? K.up : K.down;
+      b.vel += (target - b.heat) * K.gain * dt;
+      b.vel *= Math.exp(-K.damp * dt);
+      b.heat = F.U.clamp(b.heat + b.vel * dt * K.rate, 0, 1);
       // the band wanders, so you cannot just park the needle
-      b.drift += dt * 0.66;
+      b.drift += dt * K.drift;
       b.band = 0.52 + Math.sin(b.drift) * 0.23 + Math.sin(b.drift * 2.5) * 0.09;
-      b.bandW = 0.148 - Math.min(0.045, b.t * 0.0055);
+      b.bandW = K.bandW - Math.min(K.narrow, b.t * K.narrowRate);
       const inBand = Math.abs(b.heat - b.band) < b.bandW / 2;
       if (inBand) { b.score += dt; b.inT += dt; }
       else b.inT = 0;
@@ -123,7 +124,9 @@
         if (Math.random() < 0.25) F.Audio.bellows();
       }
       if (b.t >= b.dur) {
-        this.parts.bellows = F.U.sat(b.score / (b.dur * 0.70));
+        // the divisor is what a full score costs in time inside the band; it is
+        // the lever that sets how much of the stage a mid-skill player banks
+        this.parts.bellows = F.U.sat(b.score / (b.dur * 0.82));
         this.stage = 2;
         this.pourS = { fill: 0, speed: 0.38, stopped: false, target: 0.78 + Math.random() * 0.14, t: 0, wobble: Math.random() * 6 };
         F.Audio.pour();
@@ -1147,6 +1150,18 @@
   function roleCol(r) { return r === 'mult' ? P.cool : r === 'trait' ? P.magic : P.textFaint; }
 
   /** Blackbody-ish ramp: the single most important colour in the game. */
+  // The bellows is a damped second-order system driven by a binary hold, so the
+  // only thing that decides whether reading the band beats reacting to it is the
+  // relationship between these five numbers. They live here so tools/forgecurve
+  // can sweep them against an autoplayer instead of being guessed at.
+  F.BELLOWS = {
+    up: 1.02, down: -0.20,      // what the hold and the release pull toward
+    gain: 3.3, damp: 4.6,       // how hard, and how quickly it settles
+    rate: 1.7,
+    drift: 1.08,                // how fast the band wanders
+    bandW: 0.150, narrow: 0.040, narrowRate: 0.0050,
+  };
+
   // draw() has no dt, and the bellows swing needs one to ease. The scene ticks
   // at a fixed step, so the last frame's length is close enough for a lerp.
   function dtSafe(sc) { return Math.min(0.05, sc._lastDt || 1 / 60); }
