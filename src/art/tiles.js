@@ -189,23 +189,63 @@
 
   // ------------------------------------------------------------------ floors
   /** Dressed flagstones: for places somebody built rather than dug. */
+  // A flagstone floor laid one tile at a time always shows the 32px grid,
+  // because the mortar lands on the same coordinate in every tile. So the
+  // layout is cut from a 4x2-tile block instead: each variant draws the slabs
+  // that fall in its own cell, and the courses run straight across the seams.
+  const PAVE_W = TS * 4, PAVE_H = TS * 2;
+  let PAVE = null;
+  function paveLayout() {
+    if (PAVE) return PAVE;
+    const R = F.rng(88123), out = [];
+    const heights = [12, 16, 14, 12];         // + 2px mortar each = 56 + 8 = 64
+    let y = 0;
+    heights.forEach((h, row) => {
+      // widths for one course, then stretched so the course closes on itself
+      const w = [];
+      let total = 0;
+      while (total < PAVE_W - 16) { const q = 12 + Math.floor(R() * 30); w.push(q); total += q + 2; }
+      const slack = PAVE_W - total;
+      w[w.length - 1] += slack;
+      let x = -Math.floor(R() * 26);          // stagger the course
+      for (const q of w) { out.push([x, y, q, h, R(), R(), R()]); x += q + 2; }
+      y += h + 2;
+    });
+    PAVE = out;
+    return out;
+  }
+
   function paved(P, r, B, v) {
     const base = B.floor[0];
+    const ox = (v & 3) * TS, oy = ((v >> 2) & 1) * TS;
     P.mat(0.22, 0.05).rect(0, 0, TS, TS, F.Col.shade(base, 0.45));   // mortar
-    // two or four slabs per tile, offset per variant so courses break up
-    const cuts = (v % 2) ? [[0, 0, TS, 15], [0, 17, 15, 15], [17, 17, 15, 15]]
-                         : [[0, 0, 15, 15], [17, 0, 15, 15], [0, 17, TS, 15]];
-    for (const c of cuts) {
-      const shade = 0.90 + r() * 0.20;
-      P.mat(0.70, 0.10);
-      P.rounded(c[0] + 0.5, c[1] + 0.5, c[2] - 1, c[3] - 1, 1.5, F.Col.shade(base, shade));
-      // lit top edge, shaded bottom — makes each slab read as a block
-      P.a.save(); P.a.globalAlpha = 0.28;
-      P.a.fillStyle = '#ffffff'; P.a.fillRect(c[0] + 1.5, c[1] + 1, c[2] - 3, 1.4);
-      P.a.fillStyle = '#000000'; P.a.fillRect(c[0] + 1.5, c[1] + c[3] - 2.4, c[2] - 3, 1.6);
-      P.a.restore();
-      P.mat(0.68, 0.08).speckle(c[0] + 2, c[1] + 2, c[2] - 4, c[3] - 4, B.grit, 14, 0.06);
-      if (r() < 0.4) { P.mat(0.58, 0.05); P.crack(c[0] + r() * c[2], c[1] + r() * c[3], 6, B.crack, r() * 7, 0.7); }
+    for (const [sx, sy, sw, sh, k, k2, k3] of paveLayout()) {
+      // draw every wrap of the slab; the canvas clips whatever misses
+      for (const wx of [-PAVE_W, 0, PAVE_W]) for (const wy of [-PAVE_H, 0, PAVE_H]) {
+        const x = sx + wx - ox, y = sy + wy - oy;
+        if (x > TS || y > TS || x + sw < 0 || y + sh < 0) continue;
+        // slabs were cut from different stone and have worn differently; without
+        // real spread between them the course reads as brickwork
+        const stone = F.Col.mix(B.floor[(k2 * B.floor.length) | 0], base, 0.35);
+        const sunk = k3 < 0.13;
+        P.mat(sunk ? 0.48 : 0.70, 0.10);
+        P.rounded(x + 0.5, y + 0.5, sw - 1, sh - 1, 1.5,
+          F.Col.shade(stone, (sunk ? 0.62 : 0.80) + k * 0.42));
+        // lit top edge, shaded bottom — makes each slab read as a block
+        P.a.save(); P.a.globalAlpha = sunk ? 0.14 : 0.28;
+        P.a.fillStyle = '#ffffff'; P.a.fillRect(x + 1.5, y + 1, sw - 3, 1.4);
+        P.a.fillStyle = '#000000'; P.a.fillRect(x + 1.5, y + sh - 2.4, sw - 3, 1.6);
+        P.a.restore();
+        // a few slabs are split clean through
+        if (k3 > 0.86) {
+          P.mat(0.30, 0.04);
+          P.a.save(); P.a.globalAlpha = 0.55;
+          P.line(x + sw * k2, y + 1, x + sw * (1 - k2 * 0.7), y + sh - 1, B.crack, 1.1);
+          P.a.restore();
+        }
+        P.mat(0.68, 0.08).speckle(x + 2, y + 2, sw - 4, sh - 4, B.grit, Math.round(sw * sh * 0.028), 0.06);
+        if (k < 0.4) { P.mat(0.58, 0.05); P.crack(x + k * sw * 2, y + k * sh * 2, 6, B.crack, k * 17, 0.7); }
+      }
     }
     // worn hollows where feet go
     for (let i = 0; i < 3; i++) {

@@ -130,9 +130,14 @@
     rollVariants(seed) {
       const r = F.rng(seed || 12345);
       const n = F.noise2(seed || 12345);
+      const paved = !!(this.B && this.B.paved);
       for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) {
         const i = y * this.w + x;
-        this.variant[i] = ((r() * 8) | 0) | (r() < 0.5 ? 8 : 0) | (r() < 0.5 ? 16 : 0);
+        // A paved floor's variants are not a free choice: each one is a cell of
+        // a 4x2-tile flagstone block, so the courses have to line up with their
+        // neighbours. Flips would break them.
+        this.variant[i] = paved ? ((x & 3) | ((y & 1) << 2))
+          : ((r() * 8) | 0) | (r() < 0.5 ? 8 : 0) | (r() < 0.5 ? 16 : 0);
         // one slow octave only: anything faster than ~1/20 tiles turns the
         // tint map itself into a visible checkerboard
         const v = n.fbm(x * 0.052, y * 0.052, 3, 0.55);

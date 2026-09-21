@@ -147,15 +147,59 @@
           P.rect(81, 22 + i * 14, 8, 2, '#b76cff');
         }
         P.glow(null);
-        // the veil
-        P.mat(0.30, 0.1).glow('#2a0a50');
-        P.rect(20, 12, 56, 98, '#3a1070');
-        P.glow('#4a1a90').mat(0.28, 0.1);
+        // The veil. A flat rectangle of purple with stripes down it reads as an
+        // unfinished asset; what sells a doorway to somewhere else is depth —
+        // an arched mouth, darker at the lintel, and rings falling into it.
+        const cx = 48, top = 12, bot = 110, hw = 28;
+        const mouth = (k) => {
+          const pts = [];
+          for (let i = 0; i <= 26; i++) {
+            const t = i / 26, a = Math.PI * t;
+            pts.push([cx - Math.cos(a) * hw * k, top + 22 - Math.sin(a) * 22 * k]);
+          }
+          pts.push([cx + hw * k, bot], [cx - hw * k, bot]);
+          return pts;
+        };
+        P.mat(0.30, 0.10).glow('#1a0636');
+        P.poly(mouth(1), '#1d0640');
+        // the fall into it: rings tightening toward a point below the centre
+        const fx = cx, fy = bot - 30;
+        P.glow('#4a1290').mat(0.27, 0.10);
+        for (let i = 0; i < 9; i++) {
+          const k = 1 - i / 10;
+          P.a.save(); P.a.globalAlpha = 0.14 + i * 0.030;
+          P.a.beginPath();
+          P.a.ellipse(fx, fy + (1 - k) * 12, hw * k * 0.94, 34 * k, 0, 0, 7);
+          P.a.fillStyle = F.Col.mix('#3a1070', '#8c3aff', i / 9);
+          P.a.fill(); P.a.restore();
+          P.e.save(); P.e.globalAlpha = 0.10 + i * 0.028;
+          P.e.beginPath();
+          P.e.ellipse(fx, fy + (1 - k) * 12, hw * k * 0.94, 34 * k, 0, 0, 7);
+          P.e.fillStyle = F.Col.mix('#3a1070', '#7a2ad8', i / 9);
+          P.e.fill(); P.e.restore();
+        }
+        // strands drawn down into the fall. Kept short and off-centre: run them
+        // all the way in and the gate turns into a starburst.
+        P.glow('#3a1070').mat(0.26, 0.12);
         for (let i = 0; i < 14; i++) {
-          P.a.save(); P.a.globalAlpha = 0.35;
-          P.rect(20 + r() * 52, 12, 1 + r() * 3, 98, '#6a28c0');
+          const a = r() * 6.2832, rr = 0.45 + r() * 0.55;
+          const x0 = fx + Math.cos(a) * hw * rr, y0 = fy + Math.sin(a) * 34 * rr;
+          P.a.save(); P.a.globalAlpha = 0.16 + r() * 0.16;
+          P.line(x0, y0, fx + (x0 - fx) * 0.62, fy + (y0 - fy) * 0.62,
+            F.Col.mix('#5a1aa8', '#a86ae0', r()), 0.8 + r() * 0.9);
           P.a.restore();
         }
+        // the seam where the veil meets the stone
+        P.glow('#8c3aff').mat(0.34, 0.3);
+        P.a.save(); P.a.globalAlpha = 0.65;
+        const rim = mouth(0.985);
+        for (const g of [P.a, P.e]) {
+          g.save(); g.lineWidth = 2; g.strokeStyle = g === P.a ? '#b76cff' : '#5a1aa8';
+          g.beginPath(); g.moveTo(rim[0][0], rim[0][1]);
+          for (let i = 1; i < rim.length - 2; i++) g.lineTo(rim[i][0], rim[i][1]);
+          g.stroke(); g.restore();
+        }
+        P.a.restore();
         P.glow(null);
       }, { ax: 48, ay: 104, bump: 1.1 });
 
